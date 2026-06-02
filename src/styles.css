@@ -297,20 +297,28 @@ input {
 
 .records-page {
   width: min(1200px, 100%);
+  min-width: 0;
   margin: 0 auto;
   padding: 18px;
 }
 
 .records-header {
+  min-width: 0;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
 }
 
+.records-header > * {
+  min-width: 0;
+}
+
 .records-header h1,
 .records-header p {
+  min-width: 0;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .records-header h1 {
@@ -327,6 +335,7 @@ input {
 }
 
 .records-layout {
+  min-width: 0;
   display: grid;
   grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
   gap: 18px;
@@ -349,19 +358,24 @@ input {
 }
 
 .records-comparison {
+  display: grid;
+  gap: 18px;
   min-height: 420px;
   padding: 20px;
 }
 
 .records-comparison h2 {
+  min-width: 0;
   margin: 0;
   color: #151719;
   font-size: 22px;
   letter-spacing: 0;
+  overflow-wrap: anywhere;
 }
 
 .comparison-toolbar,
 .comparison-section-title {
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -370,12 +384,15 @@ input {
 
 .comparison-toolbar h2,
 .comparison-section h3 {
+  min-width: 0;
   margin: 0;
   color: #151719;
   letter-spacing: 0;
+  overflow-wrap: anywhere;
 }
 
 .comparison-toolbar label {
+  min-width: 0;
   display: grid;
   gap: 6px;
   color: #4d5963;
@@ -383,6 +400,7 @@ input {
 }
 
 .comparison-toolbar select {
+  min-width: 0;
   min-height: 42px;
   border: 1px solid #c8d0d7;
   border-radius: 8px;
@@ -397,17 +415,24 @@ input {
 }
 
 .comparison-section-title span {
+  min-width: 0;
   color: #65717b;
   font-weight: 900;
   white-space: nowrap;
 }
 
 .records-image-grid {
+  min-width: 0;
   margin-top: 0;
+}
+
+.records-result-card {
+  min-width: 0;
 }
 
 .records-result-card figcaption,
 .missing-image-card {
+  min-width: 0;
   overflow: hidden;
   color: #5d666f;
   font-size: 12px;
@@ -782,6 +807,11 @@ input {
     display: grid;
   }
 
+  .records-header p {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
   .records-header .secondary-button {
     width: 100%;
   }
@@ -793,6 +823,10 @@ input {
   .comparison-toolbar {
     display: grid;
     align-items: stretch;
+  }
+
+  .records-comparison {
+    padding: 16px;
   }
 
   .comparison-toolbar label,
@@ -816,6 +850,11 @@ input {
 
   .comparison-section-title {
     align-items: start;
+  }
+
+  .comparison-section-title span {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
 
@@ -912,8 +951,12 @@ input {
   }
 
   .image-grid.compact.records-image-grid {
-    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
+  }
+
+  .records-comparison {
+    padding: 12px;
   }
 
   .round-intro-secondary-actions {
