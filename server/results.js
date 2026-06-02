@@ -107,6 +107,72 @@ export async function getResult(dataDir, id) {
   return results.find((result) => result.id === id) ?? null;
 }
 
+export async function listCollectionResults(dataDir, collectionId) {
+  const filePath = await ensureDataFile(dataDir);
+  const raw = await fs.readFile(filePath, 'utf8');
+  const results = JSON.parse(raw);
+
+  return results
+    .filter((result) => !result.type && result.collectionId === collectionId)
+    .map(normalizeStoredResult)
+    .sort(compareNewestFirst);
+}
+
+function normalizeStoredResult(result) {
+  const normalizedResults = normalizeStoredResultGroups(result.results);
+  const selectedImageIds = new Set(Object.values(normalizedResults).flat());
+
+  return {
+    id: result.id,
+    collectionId: result.collectionId,
+    collectionName: result.collectionName,
+    nickname: result.nickname,
+    createdAt: result.createdAt,
+    results: normalizedResults,
+    selectedImageCount: selectedImageIds.size,
+  };
+}
+
+function normalizeStoredResultGroups(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .map(([star, imageIds]) => {
+        const starNumber = Number(star);
+
+        if (!Number.isFinite(starNumber) || !Array.isArray(imageIds)) {
+          return null;
+        }
+
+        const normalizedImageIds = imageIds.filter((id) => typeof id === 'string');
+        return normalizedImageIds.length > 0 ? [star, normalizedImageIds] : null;
+      })
+      .filter(Boolean),
+  );
+}
+
+function compareNewestFirst(left, right) {
+  const leftTime = Date.parse(left.createdAt);
+  const rightTime = Date.parse(right.createdAt);
+  const leftIsValid = Number.isFinite(leftTime);
+  const rightIsValid = Number.isFinite(rightTime);
+
+  if (leftIsValid && rightIsValid) {
+    return rightTime - leftTime;
+  }
+  if (leftIsValid) {
+    return -1;
+  }
+  if (rightIsValid) {
+    return 1;
+  }
+
+  return 0;
+}
+
 export function validateResultPayload(payload) {
   if (!payload || typeof payload !== 'object') {
     return '결과 데이터가 필요합니다.';

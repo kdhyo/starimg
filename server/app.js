@@ -7,7 +7,13 @@ import sharp from 'sharp';
 import archiver from 'archiver';
 import { fileURLToPath } from 'node:url';
 import { getCollectionImageDir, getImagePath, listCollections, listImages } from './images.js';
-import { getResult, saveResult, saveRoundSelectionDownload, validateResultPayload } from './results.js';
+import {
+  getResult,
+  listCollectionResults,
+  saveResult,
+  saveRoundSelectionDownload,
+  validateResultPayload,
+} from './results.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
@@ -58,6 +64,22 @@ export function createApp({
 
       const images = await listImages(collectionDir, { urlPrefix: `/api/collections/${req.params.collectionId}/images` });
       res.json({ images });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get('/api/collections/:collectionId/results', async (req, res, next) => {
+    try {
+      const collectionDir = await getCollectionImageDir(collectionsDir, req.params.collectionId);
+
+      if (!collectionDir) {
+        res.status(404).json({ message: '월드컵을 찾을 수 없습니다.' });
+        return;
+      }
+
+      const results = await listCollectionResults(dataDir, req.params.collectionId);
+      res.json({ results });
     } catch (error) {
       next(error);
     }

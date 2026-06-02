@@ -86,6 +86,113 @@ describe('server app', () => {
     expect(images.body.images[0].originalUrl).toContain(`/api/collections/${collection.id}/images/`);
   });
 
+  test('returns collection final results newest first and excludes download records', async () => {
+    const app = createApp({ imageDir, collectionsDir, dataDir });
+    const collections = await request(app).get('/api/collections').expect(200);
+    const collection = collections.body.collections[0];
+
+    await fs.mkdir(dataDir, { recursive: true });
+    await fs.writeFile(
+      path.join(dataDir, 'results.json'),
+      `${JSON.stringify(
+        [
+          {
+            id: 'old-final',
+            collectionId: collection.id,
+            collectionName: '스냅',
+            nickname: '하늘',
+            results: { 1: ['a.jpg'], 2: ['a.jpg', 'b.jpg'] },
+            createdAt: '2026-06-01T09:00:00+09:00',
+          },
+          {
+            id: 'download',
+            type: 'round-selection-download',
+            collectionId: collection.id,
+            collectionName: '스냅',
+            nickname: '하늘',
+            round: 2,
+            imageIds: ['a.jpg'],
+            createdAt: '2026-06-02T10:00:00+09:00',
+          },
+          {
+            id: 'other-collection',
+            collectionId: 'other',
+            collectionName: '다른 월드컵',
+            nickname: '바다',
+            results: { 5: ['z.jpg'] },
+            createdAt: '2026-06-03T09:00:00+09:00',
+          },
+          {
+            id: 'new-final',
+            collectionId: collection.id,
+            collectionName: '스냅',
+            nickname: '민지',
+            results: { 5: ['b.jpg'] },
+            createdAt: '2026-06-02T11:00:00+09:00',
+          },
+        ],
+        null,
+        2,
+      )}\n`,
+    );
+
+    const response = await request(app).get(`/api/collections/${collection.id}/results`).expect(200);
+
+    expect(response.body.results.map((result) => result.id)).toEqual(['new-final', 'old-final']);
+    expect(response.body.results[0]).toMatchObject({
+      id: 'new-final',
+      collectionId: collection.id,
+      collectionName: '스냅',
+      nickname: '민지',
+      results: { 5: ['b.jpg'] },
+      selectedImageCount: 1,
+    });
+    expect(response.body.results[1].selectedImageCount).toBe(2);
+  });
+
+  test('normalizes malformed collection result groups without crashing', async () => {
+    const app = createApp({ imageDir, collectionsDir, dataDir });
+    const collections = await request(app).get('/api/collections').expect(200);
+    const collection = collections.body.collections[0];
+
+    await fs.mkdir(dataDir, { recursive: true });
+    await fs.writeFile(
+      path.join(dataDir, 'results.json'),
+      `${JSON.stringify(
+        [
+          {
+            id: 'bad-results',
+            collectionId: collection.id,
+            collectionName: '스냅',
+            nickname: '하늘',
+            results: {
+              5: ['a.jpg', 100, 'b.jpg'],
+              nope: ['ignored.jpg'],
+              2: 'not-array',
+            },
+            createdAt: 'not-a-date',
+          },
+        ],
+        null,
+        2,
+      )}\n`,
+    );
+
+    const response = await request(app).get(`/api/collections/${collection.id}/results`).expect(200);
+
+    expect(response.body.results).toEqual([
+      {
+        id: 'bad-results',
+        collectionId: collection.id,
+        collectionName: '스냅',
+        nickname: '하늘',
+        createdAt: 'not-a-date',
+        results: { 5: ['a.jpg', 'b.jpg'] },
+        selectedImageCount: 2,
+      },
+    ]);
+  });
+
   test('returns every sorted image without a testing limit', async () => {
     for (let index = 0; index < 60; index += 1) {
       await fs.writeFile(path.join(imageDir, `${String(index).padStart(2, '0')}.jpg`), tinyJpeg);
