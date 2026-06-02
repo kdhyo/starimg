@@ -773,6 +773,52 @@ input {
   font-weight: 900;
 }
 
+@media (max-width: 720px) {
+  .records-page {
+    padding: 14px;
+  }
+
+  .records-header {
+    display: grid;
+  }
+
+  .records-header .secondary-button {
+    width: 100%;
+  }
+
+  .records-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .comparison-toolbar {
+    display: grid;
+    align-items: stretch;
+  }
+
+  .comparison-toolbar label,
+  .comparison-toolbar select {
+    width: 100%;
+  }
+
+  .collection-card-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .record-row {
+    align-items: start;
+  }
+
+  .record-row strong,
+  .record-row small {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .comparison-section-title {
+    align-items: start;
+  }
+}
+
 @media (max-width: 640px) {
   .start-screen {
     padding: 16px;
@@ -788,14 +834,9 @@ input {
 
   .play-header,
   .result-header,
-  .group-title,
-  .records-header {
+  .group-title {
     align-items: flex-start;
     flex-direction: column;
-  }
-
-  .records-layout {
-    grid-template-columns: 1fr;
   }
 
   .image-grid {
@@ -862,6 +903,19 @@ input {
 }
 
 @media (max-width: 420px) {
+  .records-page {
+    padding: 10px;
+  }
+
+  .records-header h1 {
+    font-size: 30px;
+  }
+
+  .image-grid.compact.records-image-grid {
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+    gap: 10px;
+  }
+
   .round-intro-secondary-actions {
     grid-template-columns: 1fr;
   }
