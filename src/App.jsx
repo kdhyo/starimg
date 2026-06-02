@@ -924,7 +924,9 @@ function RecordImageSection({ title, imageIds, imageById, onExpand }) {
                     <img src={image.previewUrl} alt="" loading="lazy" />
                   </button>
                 ) : (
-                  <div className="missing-image-card">{image.filename}</div>
+                  <div className="missing-image-card" aria-hidden="true">
+                    이미지 없음
+                  </div>
                 )}
                 <figcaption>{image.filename}</figcaption>
               </figure>

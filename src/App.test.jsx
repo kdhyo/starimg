@@ -46,8 +46,8 @@ const collectionResults = [
     collectionName: '스냅',
     nickname: '사용자A',
     createdAt: '2026-06-01T09:00:00+09:00',
-    results: { 5: ['a.jpg'], 4: ['d.jpg'] },
-    selectedImageCount: 2,
+    results: { 5: ['a.jpg'], 4: ['d.jpg', 'missing.jpg'] },
+    selectedImageCount: 3,
   },
 ];
 
@@ -168,11 +168,14 @@ describe('App', () => {
     expect(within(partialSection).getByText('b.jpg')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '각 기록에만 있는 이미지' })).toBeInTheDocument();
     expect(screen.getByText('d.jpg')).toBeInTheDocument();
+    expect(screen.getByText('이미지 없음')).toBeInTheDocument();
+    expect(screen.getAllByText('missing.jpg')).toHaveLength(1);
 
     await userEvent.selectOptions(screen.getByLabelText('별점 필터'), '최고 별점만');
 
     expect(screen.queryByText('b.jpg')).not.toBeInTheDocument();
     expect(screen.queryByText('d.jpg')).not.toBeInTheDocument();
+    expect(screen.queryByText('missing.jpg')).not.toBeInTheDocument();
     expect(screen.getByText('최고 별점만')).toBeInTheDocument();
   });
 
