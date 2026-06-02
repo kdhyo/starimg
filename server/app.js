@@ -8,10 +8,15 @@ import archiver from 'archiver';
 import { fileURLToPath } from 'node:url';
 import { getCollectionImageDir, getImagePath, listCollections, listImages } from './images.js';
 import {
+  completePlayRecord,
+  createPlayRecord,
   getResult,
   listCollectionResults,
   saveResult,
   saveRoundSelectionDownload,
+  updatePlayRecord,
+  validatePlayRecordCompletePayload,
+  validatePlayRecordCreatePayload,
   validateResultPayload,
 } from './results.js';
 
@@ -149,15 +154,29 @@ export function createApp({
       }
 
       if (req.body?.downloadKind === 'round-selection') {
-        await saveRoundSelectionDownload(dataDir, {
-          nickname: req.body?.nickname,
-          round: req.body?.round,
-          label,
-          collectionId,
-          collectionName: req.body?.collectionName,
-          imageIds,
-          roundSelections: normalizeRoundSelections(req.body?.roundSelections),
-        });
+        const playRecordId = typeof req.body?.playRecordId === 'string' ? req.body.playRecordId.trim() : '';
+        const roundSelections = normalizeRoundSelections(req.body?.roundSelections);
+
+        if (playRecordId) {
+          const playRecord = await updatePlayRecord(dataDir, playRecordId, {
+            roundSelections,
+          });
+
+          if (!playRecord) {
+            res.status(404).json({ message: '기록을 찾을 수 없습니다.' });
+            return;
+          }
+        } else {
+          await saveRoundSelectionDownload(dataDir, {
+            nickname: req.body?.nickname,
+            round: req.body?.round,
+            label,
+            collectionId,
+            collectionName: req.body?.collectionName,
+            imageIds,
+            roundSelections,
+          });
+        }
       }
 
       res.type('application/zip');
@@ -175,6 +194,74 @@ export function createApp({
       }
 
       await archive.finalize();
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post('/api/play-records', async (req, res, next) => {
+    try {
+      const validationError = validatePlayRecordCreatePayload(req.body);
+
+      if (validationError) {
+        res.status(400).json({ message: validationError });
+        return;
+      }
+
+      const record = await createPlayRecord(dataDir, req.body);
+      res.status(201).json(record);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.patch('/api/play-records/:id', async (req, res, next) => {
+    try {
+      const record = await updatePlayRecord(dataDir, req.params.id, req.body);
+
+      if (!record) {
+        res.status(404).json({ message: '기록을 찾을 수 없습니다.' });
+        return;
+      }
+
+      res.json(record);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.patch('/api/play-records/:id/complete', async (req, res, next) => {
+    try {
+      const validationError = validatePlayRecordCompletePayload(req.body);
+
+      if (validationError) {
+        res.status(400).json({ message: validationError });
+        return;
+      }
+
+      const record = await completePlayRecord(dataDir, req.params.id, req.body);
+
+      if (!record) {
+        res.status(404).json({ message: '기록을 찾을 수 없습니다.' });
+        return;
+      }
+
+      res.json(record);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get('/api/play-records/:id', async (req, res, next) => {
+    try {
+      const record = await getResult(dataDir, req.params.id);
+
+      if (!record) {
+        res.status(404).json({ message: '기록을 찾을 수 없습니다.' });
+        return;
+      }
+
+      res.json(record);
     } catch (error) {
       next(error);
     }

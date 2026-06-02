@@ -2,6 +2,14 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
+export const PlayRecordStatus = Object.freeze({
+  InProgress: 'in-progress',
+  Completed: 'completed',
+  Abandoned: 'abandoned',
+});
+
+const playRecordStatuses = new Set(Object.values(PlayRecordStatus));
+
 async function ensureDataFile(dataDir) {
   await fs.mkdir(dataDir, { recursive: true });
   const filePath = path.join(dataDir, 'results.json');
@@ -33,6 +41,73 @@ export async function saveResult(dataDir, payload) {
   await fs.writeFile(filePath, `${JSON.stringify(results, null, 2)}\n`);
 
   return record;
+}
+
+export async function createPlayRecord(dataDir, payload) {
+  const filePath = await ensureDataFile(dataDir);
+  const raw = await fs.readFile(filePath, 'utf8');
+  const results = JSON.parse(raw);
+  const now = formatKoreanTime(new Date());
+  const record = {
+    id: crypto.randomUUID(),
+    status: PlayRecordStatus.InProgress,
+    collectionId: typeof payload.collectionId === 'string' ? payload.collectionId : '',
+    collectionName: typeof payload.collectionName === 'string' ? payload.collectionName : '',
+    nickname: payload.nickname.trim(),
+    roundSelections: [],
+    results: {},
+    createdAt: now,
+    updatedAt: now,
+    completedAt: null,
+  };
+
+  results.push(record);
+  await fs.writeFile(filePath, `${JSON.stringify(results, null, 2)}\n`);
+
+  return record;
+}
+
+export async function updatePlayRecord(dataDir, id, payload) {
+  const roundSelections = payload.roundSelections ? normalizeRoundSelections(payload.roundSelections) : null;
+
+  return updateStoredPlayRecord(dataDir, id, (record) => ({
+    ...record,
+    ...(roundSelections ? { roundSelections } : {}),
+    ...(payload.results
+      ? { results: normalizeStoredResultGroups(payload.results) }
+      : roundSelections
+        ? { results: normalizeRoundSelectionResults(roundSelections) }
+        : {}),
+    updatedAt: formatKoreanTime(new Date()),
+  }));
+}
+
+export async function completePlayRecord(dataDir, id, payload) {
+  return updateStoredPlayRecord(dataDir, id, (record) => ({
+    ...record,
+    status: PlayRecordStatus.Completed,
+    roundSelections: normalizeRoundSelections(payload.roundSelections),
+    results: normalizeStoredResultGroups(payload.results),
+    updatedAt: formatKoreanTime(new Date()),
+    completedAt: formatKoreanTime(new Date()),
+  }));
+}
+
+async function updateStoredPlayRecord(dataDir, id, updater) {
+  const filePath = await ensureDataFile(dataDir);
+  const raw = await fs.readFile(filePath, 'utf8');
+  const results = JSON.parse(raw);
+  const index = results.findIndex((result) => result.id === id);
+
+  if (index === -1) {
+    return null;
+  }
+
+  const updated = updater(results[index]);
+  results[index] = updated;
+  await fs.writeFile(filePath, `${JSON.stringify(results, null, 2)}\n`);
+
+  return updated;
 }
 
 export async function saveRoundSelectionDownload(dataDir, payload) {
@@ -81,10 +156,31 @@ function normalizeRoundSelections(value) {
 
   return value
     .map((selection) => ({
-      round: Number(selection?.round),
+      round: normalizeRoundKey(selection?.round),
       imageIds: Array.isArray(selection?.imageIds) ? selection.imageIds.filter((id) => typeof id === 'string') : [],
     }))
-    .filter((selection) => Number.isFinite(selection.round));
+    .filter((selection) => selection.round);
+}
+
+function normalizeRoundKey(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  const trimmed = value.trim();
+  return /^\d+(?:-\d+)?$/.test(trimmed) ? trimmed : '';
+}
+
+function normalizeRoundSelectionResults(roundSelections) {
+  return Object.fromEntries(
+    roundSelections
+      .filter((selection) => selection.imageIds.length > 0)
+      .map((selection) => [selection.round, selection.imageIds]),
+  );
 }
 
 function formatKoreanTime(date) {
@@ -140,9 +236,21 @@ function normalizeStoredResult(result) {
     collectionName: result.collectionName,
     nickname: result.nickname,
     createdAt: result.createdAt,
+    ...(Object.hasOwn(result, 'status') ? { status: normalizePlayRecordStatus(result.status) } : {}),
+    ...(Object.hasOwn(result, 'updatedAt') ? { updatedAt: result.updatedAt } : {}),
+    ...(Object.hasOwn(result, 'completedAt') ? { completedAt: result.completedAt } : {}),
+    ...(Object.hasOwn(result, 'roundSelections') ? { roundSelections: normalizeRoundSelections(result.roundSelections) } : {}),
     results: normalizedResults,
     selectedImageCount: selectedImageIds.size,
   };
+}
+
+function normalizePlayRecordStatus(status) {
+  if (playRecordStatuses.has(status)) {
+    return status;
+  }
+
+  return PlayRecordStatus.Completed;
 }
 
 function normalizeRoundSelectionDownloadResult(result) {
@@ -211,6 +319,28 @@ export function validateResultPayload(payload) {
   }
   if (typeof payload.nickname !== 'string' || payload.nickname.trim().length === 0) {
     return '이름을 입력해주세요.';
+  }
+  if (!payload.results || typeof payload.results !== 'object' || Array.isArray(payload.results)) {
+    return '별점별 결과가 필요합니다.';
+  }
+
+  return null;
+}
+
+export function validatePlayRecordCreatePayload(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return '기록 데이터가 필요합니다.';
+  }
+  if (typeof payload.nickname !== 'string' || payload.nickname.trim().length === 0) {
+    return '이름을 입력해주세요.';
+  }
+
+  return null;
+}
+
+export function validatePlayRecordCompletePayload(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return '기록 데이터가 필요합니다.';
   }
   if (!payload.results || typeof payload.results !== 'object' || Array.isArray(payload.results)) {
     return '별점별 결과가 필요합니다.';

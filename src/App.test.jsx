@@ -73,8 +73,11 @@ beforeEach(() => {
     if (url === '/api/collections/snap/results') {
       return Response.json({ results: collectionResults });
     }
-    if (url === '/api/results' && options?.method === 'POST') {
-      return Response.json({ id: 'result-1' }, { status: 201 });
+    if (url === '/api/play-records' && options?.method === 'POST') {
+      return Response.json({ id: 'play-record-1' }, { status: 201 });
+    }
+    if (url === '/api/play-records/play-record-1/complete' && options?.method === 'PATCH') {
+      return Response.json({ id: 'play-record-1', status: 'completed' });
     }
     return Response.json({}, { status: 404 });
   });
@@ -83,9 +86,12 @@ beforeEach(() => {
 describe('App', () => {
   test('locks start form controls while images are loading', async () => {
     let resolveImages;
-    global.fetch = vi.fn((url) => {
+    global.fetch = vi.fn((url, options) => {
       if (url === '/api/collections') {
         return Promise.resolve(Response.json({ collections }));
+      }
+      if (url === '/api/play-records' && options?.method === 'POST') {
+        return Promise.resolve(Response.json({ id: 'play-record-1' }, { status: 201 }));
       }
 
       return new Promise((resolve) => {
@@ -270,12 +276,13 @@ describe('App', () => {
     expect(submittedForms[0].querySelector('[name="label"]')).toHaveValue('round-1-selected');
     expect(submittedForms[0].querySelector('[name="imageIds"]')).toHaveValue(JSON.stringify(['a.jpg', 'j.jpg']));
     expect(submittedForms[0].querySelector('[name="downloadKind"]')).toHaveValue('round-selection');
+    expect(submittedForms[0].querySelector('[name="playRecordId"]')).toHaveValue('play-record-1');
     expect(submittedForms[0].querySelector('[name="collectionId"]')).toHaveValue('snap');
     expect(submittedForms[0].querySelector('[name="collectionName"]')).toHaveValue('스냅');
     expect(submittedForms[0].querySelector('[name="nickname"]')).toHaveValue('하늘');
     expect(submittedForms[0].querySelector('[name="round"]')).toHaveValue('1');
     expect(submittedForms[0].querySelector('[name="roundSelections"]')).toHaveValue(
-      JSON.stringify([{ round: 1, imageIds: ['a.jpg', 'j.jpg'] }]),
+      JSON.stringify([{ round: '1', imageIds: ['a.jpg', 'j.jpg'] }]),
     );
 
     await userEvent.click(screen.getByRole('button', { name: '다음 라운드 진행' }));
@@ -321,8 +328,15 @@ describe('App', () => {
     await userEvent.click(screen.getByRole('button', { name: '이번 선택 다운로드' }));
 
     expect(submittedForms[0].querySelector('[name="imageIds"]')).toHaveValue(JSON.stringify(['a.jpg', 'j.jpg', 'b.jpg', 'c.jpg']));
+    expect(submittedForms[0].querySelector('[name="label"]')).toHaveValue('round-1-2-selected');
+    expect(submittedForms[0].querySelector('[name="round"]')).toHaveValue('1-2');
+    expect(submittedForms[0].querySelector('[name="playRecordId"]')).toHaveValue('play-record-1');
     expect(submittedForms[0].querySelector('[name="roundSelections"]')).toHaveValue(
-      JSON.stringify([{ round: 1, imageIds: ['a.jpg', 'j.jpg', 'b.jpg', 'c.jpg'] }]),
+      JSON.stringify([
+        { round: '1', imageIds: ['a.jpg', 'j.jpg'] },
+        { round: '1-1', imageIds: ['b.jpg'] },
+        { round: '1-2', imageIds: ['c.jpg'] },
+      ]),
     );
 
     await userEvent.click(screen.getByRole('button', { name: '다음 라운드 진행' }));
@@ -378,13 +392,13 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        '/api/results',
+        '/api/play-records/play-record-1/complete',
         expect.objectContaining({
-          method: 'POST',
+          method: 'PATCH',
           body: expect.stringContaining('"roundSelections"'),
         }),
       );
     });
-    expect(global.fetch.mock.calls.filter(([url]) => url === '/api/results')).toHaveLength(1);
+    expect(global.fetch.mock.calls.filter(([url]) => url === '/api/play-records/play-record-1/complete')).toHaveLength(1);
   });
 });

@@ -58,6 +58,20 @@ function formatRecordSummary(record, filterId = starFilterOptions[0].id) {
   return summaryParts.join(' · ');
 }
 
+function getRoundKey(round) {
+  return String(round);
+}
+
+function getExtraRoundKey(round, iteration) {
+  return `${round}-${iteration}`;
+}
+
+function getDownloadRoundKey(roundIntro) {
+  return roundIntro.extraSelectionCount > 0
+    ? getExtraRoundKey(roundIntro.completedRound, roundIntro.extraSelectionCount)
+    : getRoundKey(roundIntro.completedRound);
+}
+
 export default function App() {
   const [nickname, setNickname] = useState('');
   const [collections, setCollections] = useState([]);
@@ -67,7 +81,7 @@ export default function App() {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [savedResultId, setSavedResultId] = useState(null);
+  const [playRecordId, setPlayRecordId] = useState(null);
   const [roundIntro, setRoundIntro] = useState(null);
   const [history, setHistory] = useState([]);
   const [bonusHistory, setBonusHistory] = useState([]);
@@ -190,18 +204,15 @@ export default function App() {
   }, [gameState, groupedResults]);
 
   useEffect(() => {
-    if (!gameState?.finished || !resultPayload || savedOnce.current) {
+    if (!gameState?.finished || !resultPayload || !playRecordId || savedOnce.current) {
       return;
     }
 
     savedOnce.current = true;
-    fetch('/api/results', {
-      method: 'POST',
+    fetch(`/api/play-records/${playRecordId}/complete`, {
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        collectionId: selectedCollection?.id,
-        collectionName: selectedCollection?.name,
-        nickname,
         roundSelections,
         results: resultPayload,
       }),
@@ -213,9 +224,9 @@ export default function App() {
 
         return response.json();
       })
-      .then((result) => setSavedResultId(result.id))
+      .then((result) => setPlayRecordId(result.id))
       .catch((saveError) => setError(saveError.message));
-  }, [gameState, nickname, resultPayload, roundSelections, selectedCollection]);
+  }, [gameState, playRecordId, resultPayload, roundSelections]);
 
   async function startGame(event, collectionOverride = selectedCollection) {
     event?.preventDefault();
@@ -234,7 +245,7 @@ export default function App() {
     setError('');
     setIsLoading(true);
     savedOnce.current = false;
-    setSavedResultId(null);
+    setPlayRecordId(null);
 
     try {
       const response = await fetch(`/api/collections/${collectionOverride.id}/images`);
@@ -249,9 +260,26 @@ export default function App() {
         throw new Error('표시할 이미지가 없습니다.');
       }
 
+      const recordResponse = await fetch('/api/play-records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          collectionId: collectionOverride.id,
+          collectionName: collectionOverride.name,
+          nickname: trimmedName,
+        }),
+      });
+
+      if (!recordResponse.ok) {
+        throw new Error('플레이 기록을 만들지 못했습니다.');
+      }
+
+      const record = await recordResponse.json();
+
       setSelectedCollection(collectionOverride);
       setImages(data.images);
       setGameState(createGameState(data.images));
+      setPlayRecordId(record.id);
       setSelectedIds(new Set());
       setRoundIntro(null);
       setHistory([]);
@@ -318,7 +346,7 @@ export default function App() {
     const completedRoundSelection =
       nextState.finished || nextState.round > gameState.round
         ? {
-            round: gameState.round,
+            round: getRoundKey(gameState.round),
             imageIds: nextState.round > gameState.round
               ? nextState.currentCandidates.map((image) => image.id)
               : nextState.nextCandidates.map((image) => image.id),
@@ -380,7 +408,6 @@ export default function App() {
     }
 
     const selectedImages = mergeUniqueImages(roundIntro.selectedImages, completedBonusSelection);
-    const selectedImageIds = selectedImages.map((image) => image.id);
     const additionalIds = new Set(completedBonusSelection.map((image) => image.id));
     const scores = { ...gameState.scores };
 
@@ -388,14 +415,11 @@ export default function App() {
       scores[imageId] = (scores[imageId] ?? 0) + 1;
     }
 
-    const nextRoundSelections = roundSelections.map((selection) =>
-      selection.round === roundIntro.completedRound
-        ? {
-            ...selection,
-            imageIds: selectedImageIds,
-          }
-        : selection,
-    );
+    const extraRoundSelection = {
+      round: getExtraRoundKey(roundIntro.completedRound, bonusSelection.iteration),
+      imageIds: completedBonusSelection.map((image) => image.id),
+    };
+    const nextRoundSelections = [...roundSelections, extraRoundSelection];
     const nextRoundIntro = {
       ...roundIntro,
       selectedImages,
@@ -481,7 +505,7 @@ export default function App() {
   function resetGame() {
     setGameState(null);
     setSelectedIds(new Set());
-    setSavedResultId(null);
+    setPlayRecordId(null);
     setRoundIntro(null);
     setHistory([]);
     setBonusHistory([]);
@@ -556,16 +580,19 @@ export default function App() {
       return;
     }
 
+    const roundKey = getDownloadRoundKey(roundIntro);
+
     downloadZip(
-      `round-${roundIntro.completedRound}-selected`,
+      `round-${roundKey}-selected`,
       roundIntro.selectedImages.map((image) => image.id),
-      `round-${roundIntro.completedRound}-selected.zip`,
+      `round-${roundKey}-selected.zip`,
       {
         downloadKind: 'round-selection',
+        playRecordId: playRecordId ?? '',
         collectionId: selectedCollection?.id ?? '',
         collectionName: selectedCollection?.name ?? '',
         nickname: nickname.trim(),
-        round: roundIntro.completedRound,
+        round: roundKey,
         roundSelections: JSON.stringify(roundIntro.roundSelections ?? []),
       },
     );
@@ -692,7 +719,7 @@ export default function App() {
             <p className="eyebrow">결과</p>
             <h1>{selectedCollection?.title ?? '웨딩사진 월드컵'} 결과</h1>
             <p>{nickname.trim()}의 결과</p>
-            <p>{savedResultId ? `저장됨: ${savedResultId}` : '결과 저장 중'}</p>
+            <p>{playRecordId ? `저장됨: ${playRecordId}` : '결과 저장 중'}</p>
           </div>
           <button type="button" className="secondary-button" onClick={resetGame}>
             다시 시작
