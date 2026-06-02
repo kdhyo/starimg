@@ -805,6 +805,15 @@ input {
 
   .records-header {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .records-header > div {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .records-header p {
@@ -813,8 +822,11 @@ input {
   }
 
   .records-header p:not(.eyebrow) {
+    display: block;
     width: 100%;
     max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
     word-break: break-all;
   }
 
