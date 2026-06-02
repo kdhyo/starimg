@@ -42,6 +42,10 @@ const getStarGroups = (record) => {
 export const getFilteredRecordImageIds = (record, filterId) => {
   const starGroups = getStarGroups(record);
 
+  if (record?.type === 'round-selection-download') {
+    return getUniqueImageIds(starGroups.flatMap((group) => group.imageIds));
+  }
+
   if (filterId === 'top') {
     const topGroup = starGroups.at(-1);
     return getUniqueImageIds(topGroup?.imageIds ?? []);

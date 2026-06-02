@@ -86,7 +86,7 @@ describe('server app', () => {
     expect(images.body.images[0].originalUrl).toContain(`/api/collections/${collection.id}/images/`);
   });
 
-  test('returns collection final results newest first and excludes download records', async () => {
+  test('returns collection results newest first and includes round selection downloads', async () => {
     const app = createApp({ imageDir, collectionsDir, dataDir });
     const collections = await request(app).get('/api/collections').expect(200);
     const collection = collections.body.collections[0];
@@ -111,7 +111,8 @@ describe('server app', () => {
             collectionName: '스냅',
             nickname: '하늘',
             round: 2,
-            imageIds: ['a.jpg'],
+            imageIds: ['a.jpg', 'a.jpg', 'b.jpg', 100],
+            label: 'round-2-selected',
             createdAt: '2026-06-02T10:00:00+09:00',
           },
           {
@@ -147,7 +148,7 @@ describe('server app', () => {
 
     const response = await request(app).get(`/api/collections/${collection.id}/results`).expect(200);
 
-    expect(response.body.results.map((result) => result.id)).toEqual(['new-final', 'old-final']);
+    expect(response.body.results.map((result) => result.id)).toEqual(['new-final', 'download', 'old-final']);
     expect(response.body.results[0]).toMatchObject({
       id: 'new-final',
       collectionId: collection.id,
@@ -156,7 +157,18 @@ describe('server app', () => {
       results: { 5: ['b.jpg'] },
       selectedImageCount: 1,
     });
-    expect(response.body.results[1].selectedImageCount).toBe(2);
+    expect(response.body.results[1]).toMatchObject({
+      id: 'download',
+      type: 'round-selection-download',
+      collectionId: collection.id,
+      collectionName: '스냅',
+      nickname: '하늘',
+      round: 2,
+      label: 'round-2-selected',
+      results: { 1: ['a.jpg', 'b.jpg'] },
+      selectedImageCount: 2,
+    });
+    expect(response.body.results[2].selectedImageCount).toBe(2);
   });
 
   test('normalizes malformed collection result groups without crashing', async () => {

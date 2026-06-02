@@ -151,7 +151,7 @@ input {
 
 .collection-picker {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 10px;
 }
 
@@ -213,7 +213,7 @@ input {
 
 .collection-card-actions {
   display: grid;
-  grid-template-columns: minmax(88px, 0.7fr) minmax(0, 1.3fr);
+  grid-template-columns: 1fr;
   gap: 8px;
 }
 
@@ -222,6 +222,23 @@ input {
   width: 100%;
   padding: 0 10px;
   white-space: normal;
+}
+
+.collection-card-actions .records-action-button {
+  border-color: #8fb6d8;
+  background: #eaf4ff;
+  color: #184d7a;
+}
+
+.collection-card-actions .records-action-button:hover:not(:disabled) {
+  border-color: #5b94c4;
+  background: #d9ecff;
+}
+
+@media (min-width: 721px) {
+  .collection-card-actions .secondary-button {
+    white-space: nowrap;
+  }
 }
 
 .start-panel h1,
@@ -900,6 +917,10 @@ input {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .image-grid.compact.records-image-grid {
+    grid-template-columns: 1fr;
+  }
+
   .play-header {
     min-height: 32px;
     padding: 4px 6px;
@@ -969,7 +990,7 @@ input {
   }
 
   .image-grid.compact.records-image-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 10px;
   }
 

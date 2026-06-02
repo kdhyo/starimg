@@ -81,9 +81,9 @@
 - `roundSelections`
 - `createdAt`
 
-중간 라운드 다운로드 기록은 `type: "round-selection-download"`를 가진다. 이 기록은 사용자가 중간 라운드 선택 이미지를 다운로드했을 때 생기는 별도 산출물이므로, 선택 기록 페이지에는 노출하지 않는다.
+중간 라운드 다운로드 기록은 `type: "round-selection-download"`를 가진다. 이 기록도 저장된 선택이므로 선택 기록 페이지에 노출한다. UI에서는 최종 결과와 헷갈리지 않도록 `Round 3 다운로드`처럼 중간 라운드 다운로드 기록임을 표시한다.
 
-선택 기록 페이지에서 비교 가능한 플레이 기록은 최종 결과 기록만으로 제한한다.
+선택 기록 페이지에서 비교 가능한 기록은 최종 결과 기록과 중간 라운드 다운로드 기록을 모두 포함한다.
 
 ## API 설계
 
@@ -115,10 +115,12 @@
 서버 동작:
 
 - `data/results.json`에서 읽는다.
-- `type` 필드가 있는 기록은 제외한다.
+- 최종 결과 기록과 `round-selection-download` 기록을 포함한다.
+- 지원하지 않는 `type` 값을 가진 기록은 제외한다.
 - `collectionId`로 필터링한다.
 - `createdAt`을 `Date.parse`로 해석해 최신순으로 정렬한다. 날짜가 유효하지 않은 기록은 유효한 날짜 기록 뒤에 둔다.
 - 잘못된 `results` 값은 서버가 실패하지 않도록 빈 그룹으로 정규화한다.
+- `round-selection-download.imageIds`는 기존 비교 로직이 사용할 수 있도록 비교 가능한 `results` 그룹으로 정규화한다.
 - `selectedImageCount`는 정규화된 `results` 그룹 전체에서 중복을 제거한 이미지 ID 수로 계산한다.
 
 클라이언트는 다음 API도 함께 호출한다.
@@ -165,9 +167,9 @@ Express 서버는 이미 API가 아닌 경로를 빌드된 프론트엔드로 fa
 
 서버 테스트:
 
-- `GET /api/collections/:collectionId/results`가 해당 월드컵의 최종 결과 기록만 반환한다.
+- `GET /api/collections/:collectionId/results`가 해당 월드컵의 최종 결과 기록과 중간 라운드 다운로드 기록을 반환한다.
 - 결과가 최신순으로 정렬된다.
-- `round-selection-download` 기록은 제외된다.
+- 지원하지 않는 typed 기록은 제외된다.
 - 잘못되었거나 비어 있는 결과 그룹 때문에 endpoint가 실패하지 않는다.
 
 클라이언트 테스트:
@@ -186,4 +188,3 @@ Express 서버는 이미 API가 아닌 경로를 빌드된 프론트엔드로 fa
 - 저장된 기록을 수정하거나 삭제하는 기능.
 - 모든 사용자 기준 인기 순위 집계.
 - 닉네임별 기록 병합.
-- 중간 라운드 `round-selection-download` 기록을 비교 대상에 포함하는 기능.

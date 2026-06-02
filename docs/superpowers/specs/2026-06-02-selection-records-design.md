@@ -81,9 +81,9 @@ Existing final result records are already saved in `data/results.json` with:
 - `roundSelections`
 - `createdAt`
 
-Download records use `type: "round-selection-download"` and should not appear in the selection records page. They are separate artifacts created when a user downloads an intermediate round selection.
+Download records use `type: "round-selection-download"` and should appear in the selection records page because they are also saved selections. The UI labels them as intermediate round downloads, such as `Round 3 다운로드`, so users can distinguish them from final result records.
 
-The page should treat only final result records as comparable play records.
+The page should treat final result records and intermediate round download records as comparable selection records.
 
 ## API Design
 
@@ -115,10 +115,12 @@ Response shape:
 Server behavior:
 
 - Reads from `data/results.json`.
-- Excludes records whose `type` is present.
+- Includes final result records and `round-selection-download` records.
+- Excludes records with unsupported `type` values.
 - Filters by `collectionId`.
 - Sorts by `createdAt` descending using `Date.parse`; records with invalid dates sort after valid dates.
 - Normalizes malformed `results` values to empty groups rather than crashing.
+- Normalizes `round-selection-download.imageIds` into a comparable `results` group so overlap comparison can reuse the same client logic.
 - Computes `selectedImageCount` as the number of unique image IDs across the normalized `results` groups.
 
 The client will also fetch:
@@ -165,9 +167,9 @@ Records page:
 
 Server tests:
 
-- `GET /api/collections/:collectionId/results` returns only final result records for that collection.
+- `GET /api/collections/:collectionId/results` returns final result records and round selection download records for that collection.
 - Results are sorted newest first.
-- `round-selection-download` records are excluded.
+- Unsupported typed records are excluded.
 - Malformed or empty result groups do not crash the endpoint.
 
 Client tests:
@@ -186,4 +188,3 @@ Client tests:
 - Editing or deleting saved records.
 - Aggregated popularity rankings across all users.
 - Merging records by nickname.
-- Including intermediate `round-selection-download` records in comparison.

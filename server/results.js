@@ -113,12 +113,24 @@ export async function listCollectionResults(dataDir, collectionId) {
   const results = JSON.parse(raw);
 
   return results
-    .filter((result) => !Object.hasOwn(result, 'type') && result.collectionId === collectionId)
+    .filter((result) => isCollectionSelectionRecord(result, collectionId))
     .map(normalizeStoredResult)
     .sort(compareNewestFirst);
 }
 
+function isCollectionSelectionRecord(result, collectionId) {
+  if (result?.collectionId !== collectionId) {
+    return false;
+  }
+
+  return !Object.hasOwn(result, 'type') || result.type === 'round-selection-download';
+}
+
 function normalizeStoredResult(result) {
+  if (result.type === 'round-selection-download') {
+    return normalizeRoundSelectionDownloadResult(result);
+  }
+
   const normalizedResults = normalizeStoredResultGroups(result.results);
   const selectedImageIds = new Set(Object.values(normalizedResults).flat());
 
@@ -130,6 +142,25 @@ function normalizeStoredResult(result) {
     createdAt: result.createdAt,
     results: normalizedResults,
     selectedImageCount: selectedImageIds.size,
+  };
+}
+
+function normalizeRoundSelectionDownloadResult(result) {
+  const imageIds = Array.isArray(result.imageIds) ? result.imageIds.filter((id) => typeof id === 'string') : [];
+  const uniqueImageIds = [...new Set(imageIds)];
+  const round = Number(result.round);
+
+  return {
+    id: result.id,
+    type: result.type,
+    collectionId: result.collectionId,
+    collectionName: result.collectionName,
+    nickname: result.nickname,
+    createdAt: result.createdAt,
+    ...(Number.isFinite(round) ? { round } : {}),
+    label: typeof result.label === 'string' ? result.label : '',
+    results: uniqueImageIds.length > 0 ? { 1: uniqueImageIds } : {},
+    selectedImageCount: uniqueImageIds.length,
   };
 }
 

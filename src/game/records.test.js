@@ -64,6 +64,20 @@ describe('records comparison', () => {
     expect(comparison.uniqueByRecord).toEqual([]);
   });
 
+  test('keeps round selection download records visible for star filters', () => {
+    const record = {
+      id: 'download',
+      type: 'round-selection-download',
+      results: {
+        1: ['round-a.jpg', 'round-b.jpg'],
+      },
+    };
+
+    expect(getFilteredRecordImageIds(record, 'all')).toEqual(['round-a.jpg', 'round-b.jpg']);
+    expect(getFilteredRecordImageIds(record, 'top')).toEqual(['round-a.jpg', 'round-b.jpg']);
+    expect(getFilteredRecordImageIds(record, 'three-plus')).toEqual(['round-a.jpg', 'round-b.jpg']);
+  });
+
   test('ignores malformed star groups and non-string image ids', () => {
     const record = {
       id: 'malformed',

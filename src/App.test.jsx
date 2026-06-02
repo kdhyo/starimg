@@ -23,12 +23,15 @@ const collections = [
 
 const collectionResults = [
   {
-    id: 'result-middle',
+    id: 'download-middle',
+    type: 'round-selection-download',
     collectionId: 'snap',
     collectionName: '스냅',
     nickname: '하늘',
     createdAt: '2026-06-02T10:00:00+09:00',
-    results: { 5: ['a.jpg'], 2: ['c.jpg', 'b.jpg'] },
+    round: 3,
+    label: 'round-3-selected',
+    results: { 1: ['a.jpg', 'c.jpg', 'b.jpg'] },
     selectedImageCount: 3,
   },
   {
@@ -131,6 +134,7 @@ describe('App', () => {
     render(<App />);
 
     expect(await screen.findByRole('heading', { name: '스냅 월드컵' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '스냅 월드컵 시작' })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
 
@@ -146,14 +150,14 @@ describe('App', () => {
     const recordCheckboxes = await screen.findAllByRole('checkbox');
 
     expect(recordCheckboxes.map((checkbox) => checkbox.closest('label').textContent)).toEqual([
-      expect.stringContaining('하늘'),
+      expect.stringContaining('하늘Round 3 다운로드'),
       expect.stringContaining('민지'),
       expect.stringContaining('사용자A'),
     ]);
     expect(screen.getByText('3개 기록 비교')).toBeInTheDocument();
     expect(screen.getByLabelText('이름 검색')).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /민지/ })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: /하늘/ })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /하늘.*Round 3 다운로드/ })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: /사용자A/ })).toBeChecked();
   });
 
@@ -167,13 +171,17 @@ describe('App', () => {
     const partialSection = screen.getByRole('heading', { name: '일부만 겹친 이미지' }).closest('section');
     expect(within(partialSection).getByText('b.jpg')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '각 기록에만 있는 이미지' })).toBeInTheDocument();
+    expect(screen.getByText('c.jpg')).toBeInTheDocument();
     expect(screen.getByText('d.jpg')).toBeInTheDocument();
     expect(screen.getByText('이미지 없음')).toBeInTheDocument();
     expect(screen.getAllByText('missing.jpg')).toHaveLength(1);
 
     await userEvent.selectOptions(screen.getByLabelText('별점 필터'), '최고 별점만');
 
-    expect(screen.queryByText('b.jpg')).not.toBeInTheDocument();
+    expect(screen.getByText('b.jpg')).toBeInTheDocument();
+    expect(screen.getByText('c.jpg')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /하늘.*3장.*전체 3장/ })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /민지.*1장.*전체 2장/ })).toBeChecked();
     expect(screen.queryByText('d.jpg')).not.toBeInTheDocument();
     expect(screen.queryByText('missing.jpg')).not.toBeInTheDocument();
     expect(screen.getByText('최고 별점만')).toBeInTheDocument();

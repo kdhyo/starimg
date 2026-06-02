@@ -7,7 +7,7 @@ import {
   groupByStars,
   mergeUniqueImages,
 } from './game/engine.js';
-import { compareSelectedRecords, starFilterOptions } from './game/records.js';
+import { compareSelectedRecords, getFilteredRecordImageIds, starFilterOptions } from './game/records.js';
 
 function getRecordsRouteCollectionId() {
   const match = window.location.pathname.match(/^\/collections\/([^/]+)\/records$/);
@@ -32,6 +32,30 @@ function formatRecordDate(value) {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date);
+}
+
+function getRecordTypeLabel(record) {
+  if (record.type !== 'round-selection-download') {
+    return '';
+  }
+
+  const round = Number(record.round);
+  return Number.isFinite(round) ? `Round ${round} 다운로드` : '선택 다운로드';
+}
+
+function formatRecordSummary(record, filterId = starFilterOptions[0].id) {
+  const filteredImageCount = getFilteredRecordImageIds(record, filterId).length;
+  const totalImageCount = record.selectedImageCount ?? filteredImageCount;
+  const countLabel = filterId !== starFilterOptions[0].id
+    ? `${filteredImageCount}장 · 전체 ${totalImageCount}장`
+    : `${totalImageCount}장`;
+  const summaryParts = [
+    getRecordTypeLabel(record),
+    formatRecordDate(record.createdAt),
+    countLabel,
+  ].filter(Boolean);
+
+  return summaryParts.join(' · ');
 }
 
 export default function App() {
@@ -473,11 +497,6 @@ export default function App() {
     pushPath(`/collections/${encodeURIComponent(collection.id)}/records`);
   }
 
-  function startGameFromCollection(collection) {
-    setSelectedCollection(collection);
-    startGame(null, collection);
-  }
-
   function closeRecordsView() {
     pushPath('/');
   }
@@ -485,7 +504,7 @@ export default function App() {
   function getRecordLabel(recordId) {
     const record = recordResults.find((item) => item.id === recordId);
 
-    return record ? `${record.nickname} · ${formatRecordDate(record.createdAt)}` : recordId;
+    return record ? `${record.nickname} · ${formatRecordSummary(record, starFilter)}` : recordId;
   }
 
   function downloadZip(label, imageIds, filename, metadata = {}) {
@@ -599,9 +618,7 @@ export default function App() {
                   />
                   <span>
                     <strong>{record.nickname}</strong>
-                    <small>
-                      {formatRecordDate(record.createdAt)} · {record.selectedImageCount ?? 0}장
-                    </small>
+                    <small>{formatRecordSummary(record, starFilter)}</small>
                   </span>
                 </label>
               ))}
@@ -855,16 +872,7 @@ export default function App() {
               <div className="collection-card-actions">
                 <button
                   type="button"
-                  className="secondary-button"
-                  onClick={() => startGameFromCollection(collection)}
-                  disabled={isLoading}
-                  aria-label={`${collection.title} 시작`}
-                >
-                  시작
-                </button>
-                <button
-                  type="button"
-                  className="secondary-button"
+                  className="secondary-button records-action-button"
                   onClick={() => openRecordsView(collection)}
                   disabled={isLoading}
                   aria-label={`${collection.title} 선택 기록 보기`}
