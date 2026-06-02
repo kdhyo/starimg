@@ -824,10 +824,10 @@ input {
   .records-header p:not(.eyebrow) {
     display: block;
     width: 100%;
-    max-width: 100%;
+    max-width: min(320px, 100%);
     white-space: normal;
     overflow-wrap: anywhere;
-    word-break: break-all;
+    word-break: keep-all;
   }
 
   .records-header .secondary-button {
