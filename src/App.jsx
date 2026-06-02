@@ -88,6 +88,7 @@ export default function App() {
   const [bonusSelection, setBonusSelection] = useState(null);
   const [roundSelections, setRoundSelections] = useState([]);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [expandedImage, setExpandedImage] = useState(null);
   const [recordsViewCollectionId, setRecordsViewCollectionId] = useState(() => getRecordsRouteCollectionId());
   const [recordImages, setRecordImages] = useState([]);
@@ -287,6 +288,7 @@ export default function App() {
       setBonusSelection(null);
       setRoundSelections([]);
       setShowExitConfirm(false);
+      setShowFinishConfirm(false);
       setExpandedImage(null);
     } catch (loadError) {
       setError(loadError.message);
@@ -462,6 +464,25 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  function finishSelectionFromRoundIntro() {
+    if (!gameState || !roundIntro) {
+      return;
+    }
+
+    setError('');
+    setShowFinishConfirm(false);
+    setGameState({
+      ...gameState,
+      finished: true,
+      finishReason: 'manual-finish',
+    });
+    setRoundIntro(null);
+    setBonusSelection(null);
+    setBonusHistory([]);
+    setSelectedIds(new Set());
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   function movePrevious() {
     if (bonusSelection) {
       setBonusHistory((previous) => {
@@ -495,6 +516,7 @@ export default function App() {
       setSelectedIds(new Set(restored.selectedIds));
       setRoundSelections(restored.roundSelections);
       setRoundIntro(null);
+      setShowFinishConfirm(false);
       setError('');
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -512,6 +534,7 @@ export default function App() {
     setBonusSelection(null);
     setRoundSelections([]);
     setShowExitConfirm(false);
+    setShowFinishConfirm(false);
     setExpandedImage(null);
     savedOnce.current = false;
     setError('');
@@ -780,9 +803,14 @@ export default function App() {
           </div>
           {error && <p className="error-message">{error}</p>}
           <div className="round-intro-actions">
-            <button type="button" className="primary-button round-intro-primary" onClick={() => setRoundIntro(null)}>
-              다음 라운드 진행
-            </button>
+            <div className="round-intro-primary-actions">
+              <button type="button" className="primary-button round-intro-primary" onClick={() => setRoundIntro(null)}>
+                다음 라운드 진행
+              </button>
+              <button type="button" className="finish-button round-intro-primary" onClick={() => setShowFinishConfirm(true)}>
+                선택 마무리
+              </button>
+            </div>
             <div className="round-intro-secondary-actions">
               <button type="button" className="secondary-button" onClick={downloadRoundSelection}>
                 이번 선택 다운로드
@@ -812,6 +840,22 @@ export default function App() {
                 </button>
                 <button type="button" className="primary-button" onClick={resetGame}>
                   예
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
+        {showFinishConfirm && (
+          <div className="confirm-modal" role="dialog" aria-modal="true" aria-label="선택 마무리 확인">
+            <section className="confirm-panel">
+              <h2>선택을 마무리할까요?</h2>
+              <p>현재까지 고른 {roundIntro.selectedImages.length}장의 사진으로 결과를 저장합니다.</p>
+              <div className="confirm-actions">
+                <button type="button" className="secondary-button" onClick={() => setShowFinishConfirm(false)}>
+                  취소
+                </button>
+                <button type="button" className="finish-button" onClick={finishSelectionFromRoundIntro}>
+                  결과 저장
                 </button>
               </div>
             </section>

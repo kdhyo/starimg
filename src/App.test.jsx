@@ -290,6 +290,48 @@ describe('App', () => {
     expect(screen.getByText('1-2 / 2')).toBeInTheDocument();
   });
 
+  test('finishes and stores results from the next round screen', async () => {
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText('이름'), '하늘');
+    await userEvent.click(screen.getByRole('button', { name: '시작' }));
+    await userEvent.click(await screen.findByRole('button', { name: /a.jpg/ }));
+    await userEvent.click(screen.getByRole('button', { name: '다음' }));
+    await userEvent.click(screen.getByRole('button', { name: /j.jpg/ }));
+    await userEvent.click(screen.getByRole('button', { name: '다음' }));
+
+    expect(await screen.findByRole('heading', { name: 'Round 2 시작' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: '선택 마무리' }));
+
+    expect(screen.getByRole('dialog', { name: '선택 마무리 확인' })).toBeInTheDocument();
+    expect(screen.getByText('현재까지 고른 2장의 사진으로 결과를 저장합니다.')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: '취소' }));
+
+    expect(screen.queryByRole('dialog', { name: '선택 마무리 확인' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Round 2 시작' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: '선택 마무리' }));
+    await userEvent.click(screen.getByRole('button', { name: '결과 저장' }));
+
+    expect(await screen.findByRole('heading', { name: '스냅 월드컵 결과' })).toBeInTheDocument();
+    expect(screen.getByText('별 1개')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/play-records/play-record-1/complete',
+        expect.objectContaining({ method: 'PATCH' }),
+      );
+    });
+
+    const completeCall = global.fetch.mock.calls.find(([url]) => url === '/api/play-records/play-record-1/complete');
+    expect(JSON.parse(completeCall[1].body)).toEqual({
+      roundSelections: [{ round: '1', imageIds: ['a.jpg', 'j.jpg'] }],
+      results: { 1: ['a.jpg', 'j.jpg'] },
+    });
+  });
+
   test('allows repeated additional selection before advancing with accumulated images', async () => {
     render(<App />);
 
