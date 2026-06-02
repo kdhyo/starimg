@@ -33,10 +33,6 @@ function formatRecordDate(value) {
   }).format(date);
 }
 
-function compareRecordsNewest(first, second) {
-  return new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime();
-}
-
 export default function App() {
   const [nickname, setNickname] = useState('');
   const [collections, setCollections] = useState([]);
@@ -122,7 +118,7 @@ export default function App() {
           return;
         }
 
-        const nextResults = [...(resultsData.results ?? [])].sort(compareRecordsNewest);
+        const nextResults = resultsData.results ?? [];
         setRecordImages(imagesData.images ?? []);
         setRecordResults(nextResults);
         setSelectedRecordIds(new Set(nextResults.slice(0, 3).map((record) => record.id)));

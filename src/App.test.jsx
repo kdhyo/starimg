@@ -23,21 +23,21 @@ const collections = [
 
 const collectionResults = [
   {
-    id: 'result-new',
-    collectionId: 'snap',
-    collectionName: '스냅',
-    nickname: '민지',
-    createdAt: '2026-06-02T11:00:00+09:00',
-    results: { 5: ['a.jpg'], 3: ['b.jpg'] },
-    selectedImageCount: 2,
-  },
-  {
     id: 'result-middle',
     collectionId: 'snap',
     collectionName: '스냅',
     nickname: '하늘',
     createdAt: '2026-06-02T10:00:00+09:00',
     results: { 5: ['a.jpg'], 2: ['c.jpg'] },
+    selectedImageCount: 2,
+  },
+  {
+    id: 'result-new',
+    collectionId: 'snap',
+    collectionName: '스냅',
+    nickname: '민지',
+    createdAt: '2026-06-02T11:00:00+09:00',
+    results: { 5: ['a.jpg'], 3: ['b.jpg'] },
     selectedImageCount: 2,
   },
   {
@@ -138,7 +138,7 @@ describe('App', () => {
     expect(screen.getByText('사람별 플레이 기록을 선택해 겹치는 이미지와 각자만 고른 이미지를 비교합니다.')).toBeInTheDocument();
   });
 
-  test('renders records newest first and selects latest three by default', async () => {
+  test('renders records in response order and selects latest three by default', async () => {
     render(<App />);
 
     await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
@@ -146,8 +146,8 @@ describe('App', () => {
     const recordCheckboxes = await screen.findAllByRole('checkbox');
 
     expect(recordCheckboxes.map((checkbox) => checkbox.closest('label').textContent)).toEqual([
-      expect.stringContaining('민지'),
       expect.stringContaining('하늘'),
+      expect.stringContaining('민지'),
       expect.stringContaining('사용자A'),
     ]);
     expect(screen.getByText('3개 기록 비교')).toBeInTheDocument();
