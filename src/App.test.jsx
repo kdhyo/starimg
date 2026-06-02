@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import App from './App.jsx';
@@ -28,8 +28,8 @@ const collectionResults = [
     collectionName: '스냅',
     nickname: '하늘',
     createdAt: '2026-06-02T10:00:00+09:00',
-    results: { 5: ['a.jpg'], 2: ['c.jpg'] },
-    selectedImageCount: 2,
+    results: { 5: ['a.jpg'], 2: ['c.jpg', 'b.jpg'] },
+    selectedImageCount: 3,
   },
   {
     id: 'result-new',
@@ -164,11 +164,14 @@ describe('App', () => {
 
     expect(await screen.findByRole('heading', { name: '모두 겹친 이미지' })).toBeInTheDocument();
     expect(screen.getByText('a.jpg')).toBeInTheDocument();
+    const partialSection = screen.getByRole('heading', { name: '일부만 겹친 이미지' }).closest('section');
+    expect(within(partialSection).getByText('b.jpg')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '각 기록에만 있는 이미지' })).toBeInTheDocument();
     expect(screen.getByText('d.jpg')).toBeInTheDocument();
 
     await userEvent.selectOptions(screen.getByLabelText('별점 필터'), '최고 별점만');
 
+    expect(screen.queryByText('b.jpg')).not.toBeInTheDocument();
     expect(screen.queryByText('d.jpg')).not.toBeInTheDocument();
     expect(screen.getByText('최고 별점만')).toBeInTheDocument();
   });
