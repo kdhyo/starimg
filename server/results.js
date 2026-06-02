@@ -211,6 +211,7 @@ export async function listCollectionResults(dataDir, collectionId) {
   return results
     .filter((result) => isCollectionSelectionRecord(result, collectionId))
     .map(normalizeStoredResult)
+    .filter((result) => result.selectedImageCount > 0)
     .sort(compareNewestFirst);
 }
 
