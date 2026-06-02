@@ -360,6 +360,71 @@ input {
   letter-spacing: 0;
 }
 
+.comparison-toolbar,
+.comparison-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.comparison-toolbar h2,
+.comparison-section h3 {
+  margin: 0;
+  color: #151719;
+  letter-spacing: 0;
+}
+
+.comparison-toolbar label {
+  display: grid;
+  gap: 6px;
+  color: #4d5963;
+  font-weight: 800;
+}
+
+.comparison-toolbar select {
+  min-height: 42px;
+  border: 1px solid #c8d0d7;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #ffffff;
+}
+
+.comparison-section {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.comparison-section-title span {
+  color: #65717b;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.records-image-grid {
+  margin-top: 0;
+}
+
+.records-result-card figcaption,
+.missing-image-card {
+  overflow: hidden;
+  color: #5d666f;
+  font-size: 12px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.missing-image-card {
+  min-height: 130px;
+  display: grid;
+  place-items: center;
+  padding: 10px;
+  border-radius: 6px;
+  background: #edf1f3;
+}
+
 .records-search {
   display: grid;
   gap: 8px;

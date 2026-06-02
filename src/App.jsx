@@ -7,6 +7,7 @@ import {
   groupByStars,
   mergeUniqueImages,
 } from './game/engine.js';
+import { compareSelectedRecords, starFilterOptions } from './game/records.js';
 
 function getRecordsRouteCollectionId() {
   const match = window.location.pathname.match(/^\/collections\/([^/]+)\/records$/);
@@ -55,6 +56,7 @@ export default function App() {
   const [recordResults, setRecordResults] = useState([]);
   const [selectedRecordIds, setSelectedRecordIds] = useState(new Set());
   const [recordSearch, setRecordSearch] = useState('');
+  const [starFilter, setStarFilter] = useState(starFilterOptions[0].id);
   const [recordsError, setRecordsError] = useState('');
   const [recordsLoading, setRecordsLoading] = useState(false);
   const savedOnce = useRef(false);
@@ -480,6 +482,12 @@ export default function App() {
     pushPath('/');
   }
 
+  function getRecordLabel(recordId) {
+    const record = recordResults.find((item) => item.id === recordId);
+
+    return record ? `${record.nickname} · ${formatRecordDate(record.createdAt)}` : recordId;
+  }
+
   function downloadZip(label, imageIds, filename, metadata = {}) {
     const form = document.createElement('form');
     form.method = 'POST';
@@ -549,6 +557,9 @@ export default function App() {
     const filteredRecordResults = recordResults.filter((record) =>
       record.nickname.toLowerCase().includes(recordSearch.trim().toLowerCase()),
     );
+    const imageById = new Map(recordImages.map((image) => [image.id, image]));
+    const selectedRecords = recordResults.filter((record) => selectedRecordIds.has(record.id));
+    const comparison = compareSelectedRecords(selectedRecords, starFilter);
 
     return (
       <main className="records-page">
@@ -597,10 +608,61 @@ export default function App() {
             </div>
           </aside>
 
-          <section className="records-comparison" aria-label={`${recordImages.length}개 이미지 기록 비교`}>
-            <h2>{selectedRecordIds.size}개 기록 비교</h2>
+          <section className="records-comparison" aria-label="선택 기록 비교">
+            <div className="comparison-toolbar">
+              <h2>{selectedRecordIds.size}개 기록 비교</h2>
+              <label>
+                별점 필터
+                <select value={starFilter} onChange={(event) => setStarFilter(event.target.value)}>
+                  {starFilterOptions.map((option) => (
+                    <option value={option.id} key={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {selectedRecords.length === 0 && <p className="records-status">왼쪽 목록에서 선택 기록을 골라주세요.</p>}
+            {selectedRecords.length === 1 && (
+              <RecordImageSection
+                title={`${selectedRecords[0].nickname}의 선택 이미지`}
+                imageIds={comparison.singleRecordImageIds}
+                imageById={imageById}
+                onExpand={setExpandedImage}
+              />
+            )}
+            {selectedRecords.length >= 2 && (
+              <>
+                <RecordImageSection
+                  title="모두 겹친 이미지"
+                  imageIds={comparison.commonImageIds}
+                  imageById={imageById}
+                  onExpand={setExpandedImage}
+                />
+                <RecordImageSection
+                  title="일부만 겹친 이미지"
+                  imageIds={comparison.partialImageIds}
+                  imageById={imageById}
+                  onExpand={setExpandedImage}
+                />
+                <section className="comparison-section">
+                  <h3>각 기록에만 있는 이미지</h3>
+                  {comparison.uniqueByRecord.map((group) => (
+                    <RecordImageSection
+                      title={getRecordLabel(group.recordId)}
+                      imageIds={group.imageIds}
+                      imageById={imageById}
+                      onExpand={setExpandedImage}
+                      key={group.recordId}
+                    />
+                  ))}
+                </section>
+              </>
+            )}
           </section>
         </section>
+        <ImageModal image={expandedImage} onClose={() => setExpandedImage(null)} />
       </main>
     );
   }
@@ -651,22 +713,7 @@ export default function App() {
             ))}
         </section>
 
-        {expandedImage && (
-          <div
-            className="image-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label={expandedImage.filename}
-            onClick={() => setExpandedImage(null)}
-          >
-            <div className="image-modal-panel" onClick={(event) => event.stopPropagation()}>
-              <button type="button" className="modal-close-button" onClick={() => setExpandedImage(null)}>
-                닫기
-              </button>
-              <img src={expandedImage.originalUrl} alt={`${expandedImage.filename} 원본`} />
-            </div>
-          </div>
-        )}
+        <ImageModal image={expandedImage} onClose={() => setExpandedImage(null)} />
       </main>
     );
   }
@@ -843,5 +890,65 @@ export default function App() {
         </button>
       </form>
     </main>
+  );
+}
+
+function RecordImageSection({ title, imageIds, imageById, onExpand }) {
+  return (
+    <section className="comparison-section">
+      <div className="comparison-section-title">
+        <h3>{title}</h3>
+        <span>{imageIds.length}장</span>
+      </div>
+      {imageIds.length === 0 ? (
+        <p className="records-status">현재 필터에서 표시할 이미지가 없습니다.</p>
+      ) : (
+        <div className="image-grid compact records-image-grid">
+          {imageIds.map((imageId) => {
+            const image = imageById.get(imageId) ?? {
+              id: imageId,
+              filename: imageId,
+              previewUrl: '',
+              originalUrl: '',
+            };
+
+            return (
+              <figure className="result-card records-result-card" key={imageId}>
+                {image.previewUrl ? (
+                  <button
+                    type="button"
+                    className="result-image-button"
+                    aria-label={`${image.filename} 확대 보기`}
+                    onClick={() => onExpand(image)}
+                  >
+                    <img src={image.previewUrl} alt="" loading="lazy" />
+                  </button>
+                ) : (
+                  <div className="missing-image-card">{image.filename}</div>
+                )}
+                <figcaption>{image.filename}</figcaption>
+              </figure>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ImageModal({ image, onClose }) {
+  if (!image) {
+    return null;
+  }
+
+  return (
+    <div className="image-modal" role="dialog" aria-modal="true" aria-label={image.filename} onClick={onClose}>
+      <div className="image-modal-panel" onClick={(event) => event.stopPropagation()}>
+        <button type="button" className="modal-close-button" onClick={onClose}>
+          닫기
+        </button>
+        <img src={image.originalUrl} alt={`${image.filename} 원본`} />
+      </div>
+    </div>
   );
 }
