@@ -21,10 +21,23 @@ const collections = [
   { id: 'hair', name: '헤어변형쌤', title: '헤어변형쌤 월드컵', imageCount: 4, coverPreviewUrl: images[1].previewUrl },
 ];
 
+const collectionResults = [
+  {
+    id: 'result-new',
+    collectionId: 'snap',
+    collectionName: '스냅',
+    nickname: '민지',
+    createdAt: '2026-06-02T11:00:00+09:00',
+    results: { 5: ['a.jpg'] },
+    selectedImageCount: 1,
+  },
+];
+
 let submittedForms;
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  window.history.replaceState({}, '', '/');
   submittedForms = [];
   vi.spyOn(HTMLFormElement.prototype, 'submit').mockImplementation(function submit() {
     submittedForms.push(this.cloneNode(true));
@@ -35,6 +48,9 @@ beforeEach(() => {
     }
     if (url === '/api/collections/snap/images') {
       return Response.json({ images });
+    }
+    if (url === '/api/collections/snap/results') {
+      return Response.json({ results: collectionResults });
     }
     if (url === '/api/results' && options?.method === 'POST') {
       return Response.json({ id: 'result-1' }, { status: 201 });
@@ -91,6 +107,17 @@ describe('App', () => {
     await userEvent.click(screen.getByRole('button', { name: '시작' }));
 
     expect(await screen.findByText('이름을 입력해주세요.')).toBeInTheDocument();
+  });
+
+  test('opens selection records from a collection card action', async () => {
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: '스냅 월드컵' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+
+    expect(await screen.findByRole('heading', { name: '선택 기록' })).toBeInTheDocument();
+    expect(screen.getByText('사람별 플레이 기록을 선택해 겹치는 이미지와 각자만 고른 이미지를 비교합니다.')).toBeInTheDocument();
   });
 
   test('allows selecting and unselecting an image', async () => {

@@ -8,6 +8,16 @@ import {
   mergeUniqueImages,
 } from './game/engine.js';
 
+function getRecordsRouteCollectionId() {
+  const match = window.location.pathname.match(/^\/collections\/([^/]+)\/records$/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function pushPath(path) {
+  window.history.pushState({}, '', path);
+  window.dispatchEvent(new Event('popstate'));
+}
+
 export default function App() {
   const [nickname, setNickname] = useState('');
   const [collections, setCollections] = useState([]);
@@ -25,6 +35,7 @@ export default function App() {
   const [roundSelections, setRoundSelections] = useState([]);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [expandedImage, setExpandedImage] = useState(null);
+  const [recordsViewCollectionId, setRecordsViewCollectionId] = useState(() => getRecordsRouteCollectionId());
   const savedOnce = useRef(false);
 
   useEffect(() => {
@@ -41,6 +52,16 @@ export default function App() {
         setSelectedCollection((current) => current ?? data.collections?.[0] ?? null);
       })
       .catch((loadError) => setError(loadError.message));
+  }, []);
+
+  useEffect(() => {
+    function syncRoute() {
+      setRecordsViewCollectionId(getRecordsRouteCollectionId());
+    }
+
+    window.addEventListener('popstate', syncRoute);
+
+    return () => window.removeEventListener('popstate', syncRoute);
   }, []);
 
   const activeGameState = bonusSelection?.gameState ?? gameState;
@@ -94,11 +115,11 @@ export default function App() {
       .catch((saveError) => setError(saveError.message));
   }, [gameState, nickname, resultPayload, roundSelections, selectedCollection]);
 
-  async function startGame(event) {
-    event.preventDefault();
+  async function startGame(event, collectionOverride = selectedCollection) {
+    event?.preventDefault();
     const trimmedName = nickname.trim();
 
-    if (!selectedCollection) {
+    if (!collectionOverride) {
       setError('월드컵을 선택해주세요.');
       return;
     }
@@ -114,7 +135,7 @@ export default function App() {
     setSavedResultId(null);
 
     try {
-      const response = await fetch(`/api/collections/${selectedCollection.id}/images`);
+      const response = await fetch(`/api/collections/${collectionOverride.id}/images`);
 
       if (!response.ok) {
         throw new Error('이미지 목록을 불러오지 못했습니다.');
@@ -126,6 +147,7 @@ export default function App() {
         throw new Error('표시할 이미지가 없습니다.');
       }
 
+      setSelectedCollection(collectionOverride);
       setImages(data.images);
       setGameState(createGameState(data.images));
       setSelectedIds(new Set());
@@ -355,6 +377,19 @@ export default function App() {
     setError('');
   }
 
+  function openRecordsView(collection) {
+    pushPath(`/collections/${encodeURIComponent(collection.id)}/records`);
+  }
+
+  function startGameFromCollection(collection) {
+    setSelectedCollection(collection);
+    startGame(null, collection);
+  }
+
+  function closeRecordsView() {
+    pushPath('/');
+  }
+
   function downloadZip(label, imageIds, filename, metadata = {}) {
     const form = document.createElement('form');
     form.method = 'POST';
@@ -416,6 +451,25 @@ export default function App() {
         round: roundIntro.completedRound,
         roundSelections: JSON.stringify(roundIntro.roundSelections ?? []),
       },
+    );
+  }
+
+  if (recordsViewCollectionId) {
+    const recordsCollection = collections.find((collection) => collection.id === recordsViewCollectionId);
+
+    return (
+      <main className="records-page">
+        <section className="records-header">
+          <div>
+            <p className="eyebrow">{recordsCollection?.title ?? '이미지 월드컵'}</p>
+            <h1>선택 기록</h1>
+            <p>사람별 플레이 기록을 선택해 겹치는 이미지와 각자만 고른 이미지를 비교합니다.</p>
+          </div>
+          <button type="button" className="secondary-button" onClick={closeRecordsView}>
+            메인으로
+          </button>
+        </section>
+      </main>
     );
   }
 
@@ -605,17 +659,41 @@ export default function App() {
         <h1>{selectedCollection?.title ?? '웨딩사진 월드컵'}</h1>
         <section className="collection-picker" aria-label="월드컵 선택">
           {collections.map((collection) => (
-            <button
-              type="button"
+            <article
               className={`collection-card ${selectedCollection?.id === collection.id ? 'selected' : ''}`}
               key={collection.id}
-              onClick={() => setSelectedCollection(collection)}
-              disabled={isLoading}
             >
-              <img src={collection.coverPreviewUrl} alt="" />
-              <span>{collection.title}</span>
-              <small>{collection.imageCount}장</small>
-            </button>
+              <button
+                type="button"
+                className="collection-select-button"
+                onClick={() => setSelectedCollection(collection)}
+                disabled={isLoading}
+              >
+                <img src={collection.coverPreviewUrl} alt="" />
+                <span>{collection.title}</span>
+                <small>{collection.imageCount}장</small>
+              </button>
+              <div className="collection-card-actions">
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => startGameFromCollection(collection)}
+                  disabled={isLoading}
+                  aria-label={`${collection.title} 시작`}
+                >
+                  시작
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => openRecordsView(collection)}
+                  disabled={isLoading}
+                  aria-label={`${collection.title} 선택 기록 보기`}
+                >
+                  선택 기록 보기
+                </button>
+              </div>
+            </article>
           ))}
         </section>
         <label>
