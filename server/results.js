@@ -113,7 +113,7 @@ export async function listCollectionResults(dataDir, collectionId) {
   const results = JSON.parse(raw);
 
   return results
-    .filter((result) => !result.type && result.collectionId === collectionId)
+    .filter((result) => !Object.hasOwn(result, 'type') && result.collectionId === collectionId)
     .map(normalizeStoredResult)
     .sort(compareNewestFirst);
 }
@@ -141,14 +141,15 @@ function normalizeStoredResultGroups(value) {
   return Object.fromEntries(
     Object.entries(value)
       .map(([star, imageIds]) => {
-        const starNumber = Number(star);
+        const normalizedStar = star.trim();
+        const starNumber = Number(normalizedStar);
 
-        if (!Number.isFinite(starNumber) || !Array.isArray(imageIds)) {
+        if (!/^\d+(?:\.\d+)?$/.test(normalizedStar) || !Number.isFinite(starNumber) || !Array.isArray(imageIds)) {
           return null;
         }
 
         const normalizedImageIds = imageIds.filter((id) => typeof id === 'string');
-        return normalizedImageIds.length > 0 ? [star, normalizedImageIds] : null;
+        return normalizedImageIds.length > 0 ? [normalizedStar, normalizedImageIds] : null;
       })
       .filter(Boolean),
   );
