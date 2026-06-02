@@ -503,22 +503,24 @@ export default function App() {
           </div>
           {error && <p className="error-message">{error}</p>}
           <div className="round-intro-actions">
-            <button type="button" className="secondary-button" onClick={downloadRoundSelection}>
-              이번 선택 다운로드
-            </button>
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={startAdditionalSelection}
-              disabled={remainingAdditionalImages.length === 0}
-            >
-              추가 이미지 셀렉
-            </button>
-            <button type="button" className="secondary-button" onClick={() => setShowExitConfirm(true)}>
-              종료
-            </button>
-            <button type="button" className="primary-button" onClick={() => setRoundIntro(null)}>
+            <button type="button" className="primary-button round-intro-primary" onClick={() => setRoundIntro(null)}>
               다음 라운드 진행
+            </button>
+            <div className="round-intro-secondary-actions">
+              <button type="button" className="secondary-button" onClick={downloadRoundSelection}>
+                이번 선택 다운로드
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={startAdditionalSelection}
+                disabled={remainingAdditionalImages.length === 0}
+              >
+                추가 이미지 셀렉
+              </button>
+            </div>
+            <button type="button" className="exit-link-button" onClick={() => setShowExitConfirm(true)}>
+              종료
             </button>
           </div>
         </section>
