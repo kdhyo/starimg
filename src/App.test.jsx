@@ -28,8 +28,26 @@ const collectionResults = [
     collectionName: '스냅',
     nickname: '민지',
     createdAt: '2026-06-02T11:00:00+09:00',
-    results: { 5: ['a.jpg'] },
-    selectedImageCount: 1,
+    results: { 5: ['a.jpg'], 3: ['b.jpg'] },
+    selectedImageCount: 2,
+  },
+  {
+    id: 'result-middle',
+    collectionId: 'snap',
+    collectionName: '스냅',
+    nickname: '하늘',
+    createdAt: '2026-06-02T10:00:00+09:00',
+    results: { 5: ['a.jpg'], 2: ['c.jpg'] },
+    selectedImageCount: 2,
+  },
+  {
+    id: 'result-old',
+    collectionId: 'snap',
+    collectionName: '스냅',
+    nickname: '사용자A',
+    createdAt: '2026-06-01T09:00:00+09:00',
+    results: { 5: ['a.jpg'], 4: ['d.jpg'] },
+    selectedImageCount: 2,
   },
 ];
 
@@ -118,6 +136,25 @@ describe('App', () => {
 
     expect(await screen.findByRole('heading', { name: '선택 기록' })).toBeInTheDocument();
     expect(screen.getByText('사람별 플레이 기록을 선택해 겹치는 이미지와 각자만 고른 이미지를 비교합니다.')).toBeInTheDocument();
+  });
+
+  test('renders records newest first and selects latest three by default', async () => {
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+
+    const recordCheckboxes = await screen.findAllByRole('checkbox');
+
+    expect(recordCheckboxes.map((checkbox) => checkbox.closest('label').textContent)).toEqual([
+      expect.stringContaining('민지'),
+      expect.stringContaining('하늘'),
+      expect.stringContaining('사용자A'),
+    ]);
+    expect(screen.getByText('3개 기록 비교')).toBeInTheDocument();
+    expect(screen.getByLabelText('이름 검색')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /민지/ })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /하늘/ })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /사용자A/ })).toBeChecked();
   });
 
   test('allows selecting and unselecting an image', async () => {

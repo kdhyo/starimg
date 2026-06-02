@@ -18,6 +18,25 @@ function pushPath(path) {
   window.dispatchEvent(new Event('popstate'));
 }
 
+function formatRecordDate(value) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value || '날짜 없음';
+  }
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
+function compareRecordsNewest(first, second) {
+  return new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime();
+}
+
 export default function App() {
   const [nickname, setNickname] = useState('');
   const [collections, setCollections] = useState([]);
@@ -36,6 +55,12 @@ export default function App() {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [expandedImage, setExpandedImage] = useState(null);
   const [recordsViewCollectionId, setRecordsViewCollectionId] = useState(() => getRecordsRouteCollectionId());
+  const [recordImages, setRecordImages] = useState([]);
+  const [recordResults, setRecordResults] = useState([]);
+  const [selectedRecordIds, setSelectedRecordIds] = useState(new Set());
+  const [recordSearch, setRecordSearch] = useState('');
+  const [recordsError, setRecordsError] = useState('');
+  const [recordsLoading, setRecordsLoading] = useState(false);
   const savedOnce = useRef(false);
 
   useEffect(() => {
@@ -63,6 +88,61 @@ export default function App() {
 
     return () => window.removeEventListener('popstate', syncRoute);
   }, []);
+
+  useEffect(() => {
+    if (!recordsViewCollectionId) {
+      return;
+    }
+
+    let ignore = false;
+
+    async function loadRecordsView() {
+      setRecordsLoading(true);
+      setRecordsError('');
+      setRecordImages([]);
+      setRecordResults([]);
+      setSelectedRecordIds(new Set());
+
+      try {
+        const [imagesResponse, resultsResponse] = await Promise.all([
+          fetch(`/api/collections/${recordsViewCollectionId}/images`),
+          fetch(`/api/collections/${recordsViewCollectionId}/results`),
+        ]);
+
+        if (!imagesResponse.ok || !resultsResponse.ok) {
+          throw new Error('선택 기록을 불러오지 못했습니다.');
+        }
+
+        const [imagesData, resultsData] = await Promise.all([
+          imagesResponse.json(),
+          resultsResponse.json(),
+        ]);
+
+        if (ignore) {
+          return;
+        }
+
+        const nextResults = [...(resultsData.results ?? [])].sort(compareRecordsNewest);
+        setRecordImages(imagesData.images ?? []);
+        setRecordResults(nextResults);
+        setSelectedRecordIds(new Set(nextResults.slice(0, 3).map((record) => record.id)));
+      } catch (loadError) {
+        if (!ignore) {
+          setRecordsError(loadError.message);
+        }
+      } finally {
+        if (!ignore) {
+          setRecordsLoading(false);
+        }
+      }
+    }
+
+    loadRecordsView();
+
+    return () => {
+      ignore = true;
+    };
+  }, [recordsViewCollectionId]);
 
   const activeGameState = bonusSelection?.gameState ?? gameState;
   const currentBatch = activeGameState ? getCurrentBatch(activeGameState) : [];
@@ -173,6 +253,20 @@ export default function App() {
         next.delete(id);
       } else {
         next.add(id);
+      }
+
+      return next;
+    });
+  }
+
+  function toggleRecord(recordId) {
+    setSelectedRecordIds((previous) => {
+      const next = new Set(previous);
+
+      if (next.has(recordId)) {
+        next.delete(recordId);
+      } else {
+        next.add(recordId);
       }
 
       return next;
@@ -456,6 +550,9 @@ export default function App() {
 
   if (recordsViewCollectionId) {
     const recordsCollection = collections.find((collection) => collection.id === recordsViewCollectionId);
+    const filteredRecordResults = recordResults.filter((record) =>
+      record.nickname.toLowerCase().includes(recordSearch.trim().toLowerCase()),
+    );
 
     return (
       <main className="records-page">
@@ -468,6 +565,45 @@ export default function App() {
           <button type="button" className="secondary-button" onClick={closeRecordsView}>
             메인으로
           </button>
+        </section>
+
+        {recordsError && <p className="error-message">{recordsError}</p>}
+        {recordsLoading && <p className="records-status">선택 기록을 불러오는 중입니다.</p>}
+
+        <section className="records-layout">
+          <aside className="records-sidebar">
+            <label className="records-search">
+              <span>이름 검색</span>
+              <input
+                type="search"
+                value={recordSearch}
+                onChange={(event) => setRecordSearch(event.target.value)}
+                aria-label="이름 검색"
+                placeholder="이름으로 찾기"
+              />
+            </label>
+            <div className="record-list">
+              {filteredRecordResults.map((record) => (
+                <label className="record-row" key={record.id}>
+                  <input
+                    type="checkbox"
+                    checked={selectedRecordIds.has(record.id)}
+                    onChange={() => toggleRecord(record.id)}
+                  />
+                  <span>
+                    <strong>{record.nickname}</strong>
+                    <small>
+                      {formatRecordDate(record.createdAt)} · {record.selectedImageCount ?? 0}장
+                    </small>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </aside>
+
+          <section className="records-comparison" aria-label={`${recordImages.length}개 이미지 기록 비교`}>
+            <h2>{selectedRecordIds.size}개 기록 비교</h2>
+          </section>
         </section>
       </main>
     );
