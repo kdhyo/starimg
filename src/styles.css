@@ -575,14 +575,6 @@ input {
     padding: 0;
   }
 
-  .round-intro-actions {
-    width: 100%;
-  }
-
-  .round-intro-secondary-actions {
-    grid-template-columns: 1fr;
-  }
-
   .play-header,
   .result-header,
   .group-title {
@@ -650,5 +642,11 @@ input {
   .play-header h1,
   .result-header h1 {
     font-size: 30px;
+  }
+}
+
+@media (max-width: 420px) {
+  .round-intro-secondary-actions {
+    grid-template-columns: 1fr;
   }
 }
