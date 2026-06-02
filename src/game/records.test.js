@@ -63,4 +63,17 @@ describe('records comparison', () => {
     expect(comparison.partialImageIds).toEqual([]);
     expect(comparison.uniqueByRecord).toEqual([]);
   });
+
+  test('ignores malformed star groups and non-string image ids', () => {
+    const record = {
+      id: 'malformed',
+      results: {
+        4: ['x.jpg', 123, 'y.jpg'],
+        5: 'bad',
+      },
+    };
+
+    expect(getFilteredRecordImageIds(record, 'top')).toEqual(['x.jpg', 'y.jpg']);
+    expect(getFilteredRecordImageIds(record, 'all')).toEqual(['x.jpg', 'y.jpg']);
+  });
 });

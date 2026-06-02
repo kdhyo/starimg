@@ -30,9 +30,10 @@ const getStarGroups = (record) => {
   }
 
   return Object.entries(record.results)
+    .filter(([, imageIds]) => Array.isArray(imageIds))
     .map(([star, imageIds]) => ({
       star: Number(star),
-      imageIds: Array.isArray(imageIds) ? imageIds.filter((imageId) => typeof imageId === 'string') : [],
+      imageIds: imageIds.filter((imageId) => typeof imageId === 'string'),
     }))
     .filter((group) => Number.isFinite(group.star))
     .sort((a, b) => a.star - b.star);
