@@ -152,6 +152,7 @@ Records page:
 - Lets users filter visible records by nickname without losing current selections.
 - Recomputes comparison groups immediately when selected records or the star filter changes.
 - Opens image originals in the existing image modal pattern.
+- On mobile, stacks the record list and comparison output vertically with stable spacing. Buttons, filters, record rows, section titles, and image labels must not overlap, clip, or wrap into cramped unreadable layouts.
 
 ## Error Handling
 
@@ -176,6 +177,8 @@ Client tests:
 - Records render newest first.
 - Selecting multiple records shows all-overlap, partial-overlap, and unique-image groups.
 - Changing the star filter recomputes comparison output.
+- Mobile UI verification is required. Test or manually verify a narrow viewport, such as 390px wide, to confirm collection card actions, record rows, search/filter controls, comparison headings, and image grids do not break, overlap, clip text, or force awkward unreadable wrapping.
+- If any mobile text wraps, it must do so intentionally with enough vertical space. Long nicknames, timestamps, and labels should truncate, wrap cleanly, or move to a secondary line without covering adjacent controls.
 
 ## Out Of Scope
 
