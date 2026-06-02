@@ -812,6 +812,12 @@ input {
     overflow-wrap: anywhere;
   }
 
+  .records-header p:not(.eyebrow) {
+    width: 100%;
+    max-width: 100%;
+    word-break: break-all;
+  }
+
   .records-header .secondary-button {
     width: 100%;
   }
