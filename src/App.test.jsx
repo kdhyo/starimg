@@ -133,6 +133,24 @@ describe('App', () => {
     expect(document.querySelector('.play-grid')).toHaveClass('count-9');
   });
 
+  test('shows the selected image count in the play header', async () => {
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText('이름'), '하늘');
+    await userEvent.click(screen.getByRole('button', { name: '시작' }));
+
+    expect(await screen.findByLabelText('현재 라운드 선택 이미지 수')).toHaveTextContent('선택 0장');
+
+    const firstImage = screen.getByRole('button', { name: /a.jpg/ });
+    await userEvent.click(firstImage);
+
+    expect(screen.getByLabelText('현재 라운드 선택 이미지 수')).toHaveTextContent('선택 1장');
+
+    await userEvent.click(firstImage);
+
+    expect(screen.getByLabelText('현재 라운드 선택 이미지 수')).toHaveTextContent('선택 0장');
+  });
+
   test('uses a 5 by 2 image grid on desktop screens', async () => {
     window.matchMedia = vi.fn((query) => ({
       matches: query === '(min-width: 900px)',
@@ -246,6 +264,30 @@ describe('App', () => {
     await userEvent.click(document.querySelector('.image-modal-panel'));
 
     expect(screen.queryByRole('dialog', { name: 'a.jpg' })).not.toBeInTheDocument();
+  });
+
+  test('navigates record image previews with previous and next buttons', async () => {
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await screen.findByRole('heading', { name: '선택 기록' });
+    await userEvent.click(screen.getByRole('checkbox', { name: /민지/ }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /사용자A/ }));
+
+    await userEvent.click(screen.getByRole('button', { name: 'a.jpg 확대 보기' }));
+
+    expect(screen.getByRole('dialog', { name: 'a.jpg' })).toBeInTheDocument();
+    expect(screen.getByText('1 / 3')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: '다음 사진' }));
+
+    expect(screen.getByRole('dialog', { name: 'c.jpg' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'c.jpg 원본' })).toHaveAttribute('src', '/api/collections/snap/images/c.jpg/original');
+    expect(screen.getByText('2 / 3')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: '이전 사진' }));
+
+    expect(screen.getByRole('dialog', { name: 'a.jpg' })).toBeInTheDocument();
   });
 
   test('allows selecting and unselecting an image', async () => {
@@ -513,5 +555,35 @@ describe('App', () => {
       );
     });
     expect(global.fetch.mock.calls.filter(([url]) => url === '/api/play-records/play-record-1/complete')).toHaveLength(1);
+  });
+
+  test('navigates final result image previews with previous and next buttons', async () => {
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText('이름'), '하늘');
+    await userEvent.click(screen.getByRole('button', { name: '시작' }));
+    await userEvent.click(await screen.findByRole('button', { name: /a.jpg/ }));
+    await userEvent.click(screen.getByRole('button', { name: /b.jpg/ }));
+    await userEvent.click(screen.getByRole('button', { name: '다음' }));
+    await userEvent.click(screen.getByRole('button', { name: '다음' }));
+    await userEvent.click(await screen.findByRole('button', { name: '선택 마무리' }));
+    await userEvent.click(screen.getByRole('button', { name: '결과 저장' }));
+
+    expect(await screen.findByRole('heading', { name: '스냅 월드컵 결과' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'a.jpg 확대 보기' }));
+
+    expect(screen.getByRole('dialog', { name: 'a.jpg' })).toBeInTheDocument();
+    expect(screen.getByText('1 / 2')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: '다음 사진' }));
+
+    expect(screen.getByRole('dialog', { name: 'b.jpg' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'b.jpg 원본' })).toHaveAttribute('src', '/api/collections/snap/images/b.jpg/original');
+    expect(screen.getByText('2 / 2')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: '이전 사진' }));
+
+    expect(screen.getByRole('dialog', { name: 'a.jpg' })).toBeInTheDocument();
   });
 });

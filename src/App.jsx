@@ -117,6 +117,7 @@ export default function App() {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [expandedImage, setExpandedImage] = useState(null);
+  const [expandedImages, setExpandedImages] = useState([]);
   const [recordsViewCollectionId, setRecordsViewCollectionId] = useState(() => getRecordsRouteCollectionId());
   const [recordImages, setRecordImages] = useState([]);
   const [recordResults, setRecordResults] = useState([]);
@@ -317,6 +318,7 @@ export default function App() {
       setShowExitConfirm(false);
       setShowFinishConfirm(false);
       setExpandedImage(null);
+      setExpandedImages([]);
     } catch (loadError) {
       setError(loadError.message);
     } finally {
@@ -563,6 +565,7 @@ export default function App() {
     setShowExitConfirm(false);
     setShowFinishConfirm(false);
     setExpandedImage(null);
+    setExpandedImages([]);
     savedOnce.current = false;
     setError('');
   }
@@ -579,6 +582,16 @@ export default function App() {
     const record = recordResults.find((item) => item.id === recordId);
 
     return record ? `${record.nickname} · ${formatRecordSummary(record, starFilter)}` : recordId;
+  }
+
+  function openImageModal(image, modalImages = [image]) {
+    setExpandedImage(image);
+    setExpandedImages(modalImages);
+  }
+
+  function closeImageModal() {
+    setExpandedImage(null);
+    setExpandedImages([]);
   }
 
   function downloadZip(label, imageIds, filename, metadata = {}) {
@@ -723,7 +736,7 @@ export default function App() {
                 title={`${selectedRecords[0].nickname}의 선택 이미지`}
                 imageIds={comparison.singleRecordImageIds}
                 imageById={imageById}
-                onExpand={setExpandedImage}
+                onExpand={openImageModal}
               />
             )}
             {selectedRecords.length >= 2 && (
@@ -732,13 +745,13 @@ export default function App() {
                   title="모두 겹친 이미지"
                   imageIds={comparison.commonImageIds}
                   imageById={imageById}
-                  onExpand={setExpandedImage}
+                  onExpand={openImageModal}
                 />
                 <RecordImageSection
                   title="일부만 겹친 이미지"
                   imageIds={comparison.partialImageIds}
                   imageById={imageById}
-                  onExpand={setExpandedImage}
+                  onExpand={openImageModal}
                 />
                 <section className="comparison-section">
                   <h3>각 기록에만 있는 이미지</h3>
@@ -747,7 +760,7 @@ export default function App() {
                       title={getRecordLabel(group.recordId)}
                       imageIds={group.imageIds}
                       imageById={imageById}
-                      onExpand={setExpandedImage}
+                      onExpand={openImageModal}
                       key={group.recordId}
                     />
                   ))}
@@ -756,7 +769,7 @@ export default function App() {
             )}
           </section>
         </section>
-        <ImageModal image={expandedImage} onClose={() => setExpandedImage(null)} />
+        <ImageModal image={expandedImage} images={expandedImages} onChange={setExpandedImage} onClose={closeImageModal} />
       </main>
     );
   }
@@ -796,7 +809,7 @@ export default function App() {
                         type="button"
                         className="result-image-button"
                         aria-label={`${image.filename} 확대 보기`}
-                        onClick={() => setExpandedImage(image)}
+                        onClick={() => openImageModal(image, groupImages)}
                       >
                         <img src={image.previewUrl} alt="" loading="lazy" />
                       </button>
@@ -807,7 +820,7 @@ export default function App() {
             ))}
         </section>
 
-        <ImageModal image={expandedImage} onClose={() => setExpandedImage(null)} />
+        <ImageModal image={expandedImage} images={expandedImages} onChange={setExpandedImage} onClose={closeImageModal} />
       </main>
     );
   }
@@ -904,6 +917,9 @@ export default function App() {
               {activeGameState.cursor + 1}-{Math.min(activeGameState.cursor + activeGameState.itemsPerBatch, activeGameState.currentCandidates.length)} /{' '}
               {activeGameState.currentCandidates.length}
             </p>
+            <span className="selection-count-chip" aria-label="현재 라운드 선택 이미지 수">
+              선택 {selectedIds.size}장
+            </span>
           </div>
         </section>
 
@@ -1000,6 +1016,14 @@ export default function App() {
 }
 
 function RecordImageSection({ title, imageIds, imageById, onExpand }) {
+  const displayImages = imageIds.map((imageId) => imageById.get(imageId) ?? {
+    id: imageId,
+    filename: imageId,
+    previewUrl: '',
+    originalUrl: '',
+  });
+  const previewImages = displayImages.filter((image) => image.previewUrl);
+
   return (
     <section className="comparison-section">
       <div className="comparison-section-title">
@@ -1010,22 +1034,15 @@ function RecordImageSection({ title, imageIds, imageById, onExpand }) {
         <p className="records-status">현재 필터에서 표시할 이미지가 없습니다.</p>
       ) : (
         <div className="image-grid compact records-image-grid">
-          {imageIds.map((imageId) => {
-            const image = imageById.get(imageId) ?? {
-              id: imageId,
-              filename: imageId,
-              previewUrl: '',
-              originalUrl: '',
-            };
-
+          {displayImages.map((image) => {
             return (
-              <figure className="result-card records-result-card" key={imageId}>
+              <figure className="result-card records-result-card" key={image.id}>
                 {image.previewUrl ? (
                   <button
                     type="button"
                     className="result-image-button"
                     aria-label={`${image.filename} 확대 보기`}
-                    onClick={() => onExpand(image)}
+                    onClick={() => onExpand(image, previewImages)}
                   >
                     <img src={image.previewUrl} alt="" loading="lazy" />
                   </button>
@@ -1044,9 +1061,18 @@ function RecordImageSection({ title, imageIds, imageById, onExpand }) {
   );
 }
 
-function ImageModal({ image, onClose }) {
+function ImageModal({ image, images = [], onChange, onClose }) {
   if (!image) {
     return null;
+  }
+
+  const modalImages = images.length > 0 ? images : [image];
+  const currentIndex = Math.max(0, modalImages.findIndex((item) => item.id === image.id));
+  const hasNavigation = modalImages.length > 1;
+
+  function movePreview(offset) {
+    const nextIndex = (currentIndex + offset + modalImages.length) % modalImages.length;
+    onChange(modalImages[nextIndex]);
   }
 
   return (
@@ -1055,6 +1081,35 @@ function ImageModal({ image, onClose }) {
         <button type="button" className="modal-close-button" onClick={onClose}>
           닫기
         </button>
+        {hasNavigation && (
+          <>
+            <button
+              type="button"
+              className="modal-nav-button modal-nav-button-previous"
+              aria-label="이전 사진"
+              onClick={(event) => {
+                event.stopPropagation();
+                movePreview(-1);
+              }}
+            >
+              이전
+            </button>
+            <button
+              type="button"
+              className="modal-nav-button modal-nav-button-next"
+              aria-label="다음 사진"
+              onClick={(event) => {
+                event.stopPropagation();
+                movePreview(1);
+              }}
+            >
+              다음
+            </button>
+            <span className="modal-image-count" aria-label="확대 이미지 순서">
+              {currentIndex + 1} / {modalImages.length}
+            </span>
+          </>
+        )}
         <img src={image.originalUrl} alt={`${image.filename} 원본`} onClick={(event) => event.stopPropagation()} />
       </div>
     </div>
