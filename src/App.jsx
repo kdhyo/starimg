@@ -19,6 +19,11 @@ function getRecordsRouteCollectionId() {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+function getPhotosRouteCollectionId() {
+  const match = window.location.pathname.match(/^\/collections\/([^/]+)\/photos$/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 function pushPath(path) {
   window.history.pushState({}, '', path);
   window.dispatchEvent(new Event('popstate'));
@@ -85,13 +90,40 @@ function formatDownloadTimestamp(date = new Date()) {
   const minute = String(date.getMinutes()).padStart(2, '0');
   const second = String(date.getSeconds()).padStart(2, '0');
 
-  return `${year}${month}${day}-${hour}${minute}${second}`;
+  return `${year}${month}${day}_${hour}${minute}${second}`;
 }
 
 function getRoundSelectionFilename(nickname, roundKey) {
-  const trimmedName = nickname.trim() || 'guest';
+  const trimmedName = getDownloadName(nickname, 'guest');
 
-  return `${trimmedName}_라운드_${roundKey}_${formatDownloadTimestamp()}.zip`;
+  return `${trimmedName}_라운드_${getDownloadName(roundKey)}_선택이미지_${formatDownloadTimestamp()}.zip`;
+}
+
+function getDownloadName(value, fallback = '이미지') {
+  const trimmedValue = String(value || '').trim();
+
+  return (trimmedValue || fallback)
+    .replace(/[\\/:*?"<>|]/g, '')
+    .replace(/-/g, '_')
+    .replace(/\s+/g, '')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .trim();
+}
+
+function getCollectionDownloadFilename(collection, suffix) {
+  const collectionName = getDownloadName(collection?.title ?? collection?.name, '이미지 월드컵');
+  const downloadScope = getDownloadName(suffix);
+
+  return `${collectionName}_${downloadScope}_${formatDownloadTimestamp()}.zip`;
+}
+
+function getUniqueImageIds(imageIds) {
+  return [...new Set(imageIds)];
+}
+
+function getSelectedRecordImageIds(records, filterId) {
+  return getUniqueImageIds(records.flatMap((record) => getFilteredRecordImageIds(record, filterId)));
 }
 
 function getResponsiveItemsPerBatch() {
@@ -129,6 +161,10 @@ export default function App() {
   const [starFilter, setStarFilter] = useState(starFilterOptions[0].id);
   const [recordsError, setRecordsError] = useState('');
   const [recordsLoading, setRecordsLoading] = useState(false);
+  const [photosViewCollectionId, setPhotosViewCollectionId] = useState(() => getPhotosRouteCollectionId());
+  const [allPhotoImages, setAllPhotoImages] = useState([]);
+  const [allPhotosError, setAllPhotosError] = useState('');
+  const [allPhotosLoading, setAllPhotosLoading] = useState(false);
   const savedOnce = useRef(false);
 
   useEffect(() => {
@@ -150,6 +186,7 @@ export default function App() {
   useEffect(() => {
     function syncRoute() {
       setRecordsViewCollectionId(getRecordsRouteCollectionId());
+      setPhotosViewCollectionId(getPhotosRouteCollectionId());
     }
 
     window.addEventListener('popstate', syncRoute);
@@ -211,6 +248,50 @@ export default function App() {
       ignore = true;
     };
   }, [recordsViewCollectionId]);
+
+  useEffect(() => {
+    if (!photosViewCollectionId) {
+      return;
+    }
+
+    let ignore = false;
+
+    async function loadPhotosView() {
+      setAllPhotosLoading(true);
+      setAllPhotosError('');
+      setAllPhotoImages([]);
+
+      try {
+        const response = await fetch(`/api/collections/${photosViewCollectionId}/images`);
+
+        if (!response.ok) {
+          throw new Error('전체 사진을 불러오지 못했습니다.');
+        }
+
+        const data = await response.json();
+
+        if (ignore) {
+          return;
+        }
+
+        setAllPhotoImages(data.images ?? []);
+      } catch (loadError) {
+        if (!ignore) {
+          setAllPhotosError(loadError.message);
+        }
+      } finally {
+        if (!ignore) {
+          setAllPhotosLoading(false);
+        }
+      }
+    }
+
+    loadPhotosView();
+
+    return () => {
+      ignore = true;
+    };
+  }, [photosViewCollectionId]);
 
   const activeGameState = bonusSelection?.gameState ?? gameState;
   const currentBatch = activeGameState ? getCurrentBatch(activeGameState) : [];
@@ -581,10 +662,24 @@ export default function App() {
     pushPath('/');
   }
 
+  function openPhotosView(collection) {
+    pushPath(`/collections/${encodeURIComponent(collection.id)}/photos`);
+  }
+
+  function closePhotosView() {
+    pushPath('/');
+  }
+
   function getRecordLabel(recordId) {
     const record = recordResults.find((item) => item.id === recordId);
 
     return record ? `${record.nickname} · ${formatRecordSummary(record, starFilter)}` : recordId;
+  }
+
+  function getRecordDownloadName(recordId) {
+    const record = recordResults.find((item) => item.id === recordId);
+
+    return getDownloadName(record?.nickname ?? recordId);
   }
 
   function openImageModal(image, modalImages = [image]) {
@@ -601,6 +696,7 @@ export default function App() {
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = '/api/downloads/group';
+    form.acceptCharset = 'UTF-8';
     form.style.display = 'none';
 
     const labelInput = document.createElement('input');
@@ -664,6 +760,62 @@ export default function App() {
     );
   }
 
+  function downloadCollectionImages(collection, label, imageIds, filenameSuffix) {
+    if (imageIds.length === 0) {
+      return;
+    }
+
+    downloadZip(
+      label,
+      imageIds,
+      getCollectionDownloadFilename(collection, filenameSuffix),
+      {
+        collectionId: collection?.id ?? '',
+      },
+    );
+  }
+
+  if (photosViewCollectionId) {
+    const photosCollection = collections.find((collection) => collection.id === photosViewCollectionId);
+    const imageById = new Map(allPhotoImages.map((image) => [image.id, image]));
+    const imageIds = allPhotoImages.map((image) => image.id);
+    const collectionTitle = photosCollection?.title ?? '이미지 월드컵';
+
+    return (
+      <main className="records-page all-photos-page">
+        <section className="records-header">
+          <div>
+            <p className="eyebrow">{collectionTitle}</p>
+            <h1>전체 사진</h1>
+            <p>{collectionTitle}의 전체 사진 {allPhotoImages.length}장을 한 번에 봅니다.</p>
+          </div>
+          <button type="button" className="secondary-button" onClick={closePhotosView}>
+            메인으로
+          </button>
+        </section>
+
+        {allPhotosError && <p className="error-message">{allPhotosError}</p>}
+        {allPhotosLoading && <p className="records-status">전체 사진을 불러오는 중입니다.</p>}
+
+        <section className="records-comparison all-photos-content" aria-label="전체 사진 목록">
+          <RecordImageSection
+            title="사진 목록"
+            imageIds={imageIds}
+            imageById={imageById}
+            onExpand={openImageModal}
+            onDownload={
+              imageIds.length > 0
+                ? () => downloadCollectionImages(photosCollection, `${photosViewCollectionId}-all-photos`, imageIds, '전체사진')
+                : null
+            }
+            downloadLabel="전체사진 다운로드"
+          />
+        </section>
+        <ImageModal image={expandedImage} images={expandedImages} onChange={setExpandedImage} onClose={closeImageModal} />
+      </main>
+    );
+  }
+
   if (recordsViewCollectionId) {
     const recordsCollection = collections.find((collection) => collection.id === recordsViewCollectionId);
     const filteredRecordResults = recordResults.filter((record) =>
@@ -672,6 +824,7 @@ export default function App() {
     const imageById = new Map(recordImages.map((image) => [image.id, image]));
     const selectedRecords = recordResults.filter((record) => selectedRecordIds.has(record.id));
     const comparison = compareSelectedRecords(selectedRecords, starFilter);
+    const selectedRecordImageIds = getSelectedRecordImageIds(selectedRecords, starFilter);
 
     return (
       <main className="records-page">
@@ -721,16 +874,34 @@ export default function App() {
           <section className="records-comparison" aria-label="선택 기록 비교">
             <div className="comparison-toolbar">
               <h2>{selectedRecordIds.size}개 기록 비교</h2>
-              <label>
-                별점 필터
-                <select value={starFilter} onChange={(event) => setStarFilter(event.target.value)}>
-                  {starFilterOptions.map((option) => (
-                    <option value={option.id} key={option.id}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="comparison-toolbar-actions">
+                {selectedRecordImageIds.length > 0 && (
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() =>
+                      downloadCollectionImages(
+                        recordsCollection,
+                        `${recordsViewCollectionId}-selected-records`,
+                        selectedRecordImageIds,
+                        '선택기록_전체',
+                      )
+                    }
+                  >
+                    선택된 모든 이미지 다운로드
+                  </button>
+                )}
+                <label>
+                  별점 필터
+                  <select value={starFilter} onChange={(event) => setStarFilter(event.target.value)}>
+                    {starFilterOptions.map((option) => (
+                      <option value={option.id} key={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
             </div>
 
             {selectedRecords.length === 0 && <p className="records-status">왼쪽 목록에서 선택 기록을 골라주세요.</p>}
@@ -740,6 +911,14 @@ export default function App() {
                 imageIds={comparison.singleRecordImageIds}
                 imageById={imageById}
                 onExpand={openImageModal}
+                onDownload={() =>
+                  downloadCollectionImages(
+                    recordsCollection,
+                    `${recordsViewCollectionId}-${selectedRecords[0].id}-selected`,
+                    comparison.singleRecordImageIds,
+                    `${getDownloadName(selectedRecords[0].nickname)}_선택_이미지`,
+                  )
+                }
               />
             )}
             {selectedRecords.length >= 2 && (
@@ -749,12 +928,18 @@ export default function App() {
                   imageIds={comparison.commonImageIds}
                   imageById={imageById}
                   onExpand={openImageModal}
+                  onDownload={() =>
+                    downloadCollectionImages(recordsCollection, `${recordsViewCollectionId}-common-overlap`, comparison.commonImageIds, '모두_겹친_이미지')
+                  }
                 />
                 <RecordImageSection
                   title="일부만 겹친 이미지"
                   imageIds={comparison.partialImageIds}
                   imageById={imageById}
                   onExpand={openImageModal}
+                  onDownload={() =>
+                    downloadCollectionImages(recordsCollection, `${recordsViewCollectionId}-partial-overlap`, comparison.partialImageIds, '일부만_겹친_이미지')
+                  }
                 />
                 <section className="comparison-section">
                   <h3>각 기록에만 있는 이미지</h3>
@@ -764,6 +949,14 @@ export default function App() {
                       imageIds={group.imageIds}
                       imageById={imageById}
                       onExpand={openImageModal}
+                      onDownload={() =>
+                        downloadCollectionImages(
+                          recordsCollection,
+                          `${recordsViewCollectionId}-${group.recordId}-unique`,
+                          group.imageIds,
+                          `${getRecordDownloadName(group.recordId)}_이미지`,
+                        )
+                      }
                       key={group.recordId}
                     />
                   ))}
@@ -996,6 +1189,15 @@ export default function App() {
                 >
                   선택 기록 보기
                 </button>
+                <button
+                  type="button"
+                  className="secondary-button records-action-button"
+                  onClick={() => openPhotosView(collection)}
+                  disabled={isLoading}
+                  aria-label={`${collection.title} 전체 사진 보기`}
+                >
+                  전체 사진 보기
+                </button>
               </div>
             </article>
           ))}
@@ -1018,7 +1220,7 @@ export default function App() {
   );
 }
 
-function RecordImageSection({ title, imageIds, imageById, onExpand }) {
+function RecordImageSection({ title, imageIds, imageById, onExpand, onDownload = null, downloadLabel = '다운로드' }) {
   const displayImages = imageIds.map((imageId) => imageById.get(imageId) ?? {
     id: imageId,
     filename: imageId,
@@ -1031,7 +1233,19 @@ function RecordImageSection({ title, imageIds, imageById, onExpand }) {
     <section className="comparison-section">
       <div className="comparison-section-title">
         <h3>{title}</h3>
-        <span>{imageIds.length}장</span>
+        <div className="comparison-section-actions">
+          <span>{imageIds.length}장</span>
+          {imageIds.length > 0 && onDownload && (
+            <button
+              type="button"
+              className="secondary-button section-download-button"
+              aria-label={downloadLabel === '다운로드' ? `${title} 다운로드` : downloadLabel}
+              onClick={onDownload}
+            >
+              {downloadLabel}
+            </button>
+          )}
+        </div>
       </div>
       {imageIds.length === 0 ? (
         <p className="records-status">현재 필터에서 표시할 이미지가 없습니다.</p>

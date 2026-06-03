@@ -409,6 +409,10 @@ input {
   padding: 20px;
 }
 
+.all-photos-content {
+  margin-top: 24px;
+}
+
 .records-comparison h2 {
   min-width: 0;
   margin: 0;
@@ -444,6 +448,19 @@ input {
   font-weight: 800;
 }
 
+.comparison-toolbar-actions,
+.comparison-section-actions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.comparison-toolbar-actions {
+  flex-wrap: wrap;
+}
+
 .comparison-toolbar select {
   min-width: 0;
   min-height: 42px;
@@ -464,6 +481,12 @@ input {
   color: #65717b;
   font-weight: 900;
   white-space: nowrap;
+}
+
+.section-download-button {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
 }
 
 .records-image-grid {
@@ -1159,6 +1182,15 @@ input {
     width: 100%;
   }
 
+  .comparison-toolbar-actions {
+    display: grid;
+    justify-content: stretch;
+  }
+
+  .comparison-toolbar-actions .secondary-button {
+    width: 100%;
+  }
+
   .collection-card-actions {
     grid-template-columns: 1fr;
   }
@@ -1175,6 +1207,10 @@ input {
 
   .comparison-section-title {
     align-items: start;
+  }
+
+  .comparison-section-actions {
+    flex-wrap: wrap;
   }
 
   .comparison-section-title span {

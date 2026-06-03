@@ -439,6 +439,21 @@ describe('server app', () => {
     expect(resultsAfterDuplicate).toHaveLength(1);
   });
 
+  test('sends readable utf-8 zip filenames for browser downloads', async () => {
+    const app = createApp({ imageDir, dataDir });
+    const filename = '스냅월드컵_전체사진_20260603_235235.zip';
+
+    const response = await request(app)
+      .post('/api/downloads/group')
+      .send({ imageIds: ['a.jpg'], label: 'all-photos', filename })
+      .buffer(true)
+      .parse(parseBinaryResponse)
+      .expect(200);
+
+    expect(response.headers['content-disposition']).toContain('attachment');
+    expect(response.headers['content-disposition']).toContain(`filename*=UTF-8''${encodeURIComponent(filename)}`);
+  });
+
   test('updates an existing play record when selected round images are downloaded', async () => {
     const app = createApp({ imageDir, collectionsDir, dataDir });
     const collections = await request(app).get('/api/collections').expect(200);

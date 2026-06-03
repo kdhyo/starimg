@@ -29,6 +29,42 @@ function getDownloadFilename(body, label) {
   return filename || `${label}.zip`;
 }
 
+function getSafeDownloadFilename(filename) {
+  const safeFilename = String(filename || 'images.zip')
+    .replace(/[\r\n]/g, '')
+    .trim();
+
+  return safeFilename || 'images.zip';
+}
+
+function getAsciiFilenameFallback(filename) {
+  const parsed = path.parse(filename);
+  const extension = parsed.ext || '.zip';
+  const basename = parsed.name
+    .normalize('NFKD')
+    .replace(/[^\x20-\x7E]/g, '')
+    .replace(/[\\/:*?"<>|]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return `${basename || 'download'}${extension}`;
+}
+
+function encodeContentDispositionFilename(filename) {
+  return encodeURIComponent(filename)
+    .replace(/['()]/g, (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`)
+    .replace(/\*/g, '%2A');
+}
+
+function setZipAttachment(res, filename) {
+  const safeFilename = getSafeDownloadFilename(filename);
+  const fallbackFilename = getAsciiFilenameFallback(safeFilename).replace(/"/g, '');
+  const encodedFilename = encodeContentDispositionFilename(safeFilename);
+
+  res.type('application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="${fallbackFilename}"; filename*=UTF-8''${encodedFilename}`);
+}
+
 export function createApp({
   imageDir = path.join(projectRoot, 'imgs'),
   collectionsDir = path.join(projectRoot, 'images', 'collections'),
@@ -187,8 +223,7 @@ export function createApp({
 
       const filename = getDownloadFilename(req.body, label);
 
-      res.type('application/zip');
-      res.attachment(filename);
+      setZipAttachment(res, filename);
 
       const archive = archiver('zip', { zlib: { level: 9 } });
       archive.on('error', next);

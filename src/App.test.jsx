@@ -202,6 +202,47 @@ describe('App', () => {
     expect(screen.getByText('사람별 플레이 기록을 선택해 겹치는 이미지와 각자만 고른 이미지를 비교합니다.')).toBeInTheDocument();
   });
 
+  test('opens all collection photos without record search or filters', async () => {
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: '스냅 월드컵' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: '스냅 월드컵 전체 사진 보기' }));
+
+    expect(await screen.findByRole('heading', { name: '전체 사진' })).toBeInTheDocument();
+    expect(screen.getByText('스냅 월드컵의 전체 사진 10장을 한 번에 봅니다.')).toBeInTheDocument();
+    expect(screen.queryByLabelText('이름 검색')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('별점 필터')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /확대 보기/ })).toHaveLength(10);
+
+    await userEvent.click(screen.getByRole('button', { name: 'a.jpg 확대 보기' }));
+
+    expect(screen.getByRole('dialog', { name: 'a.jpg' })).toBeInTheDocument();
+    expect(screen.getByText('1 / 10')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: '다음 사진' }));
+
+    expect(screen.getByRole('dialog', { name: 'b.jpg' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'b.jpg 원본' })).toHaveAttribute('src', '/api/collections/snap/images/b.jpg/original');
+  });
+
+  test('downloads every photo from the all photos view', async () => {
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 전체 사진 보기' }));
+    await screen.findByRole('heading', { name: '전체 사진' });
+
+    await userEvent.click(screen.getByRole('button', { name: '전체사진 다운로드' }));
+
+    expect(submittedForms).toHaveLength(1);
+    expect(submittedForms[0]).toHaveAttribute('method', 'POST');
+    expect(submittedForms[0]).toHaveAttribute('action', '/api/downloads/group');
+    expect(submittedForms[0].querySelector('[name="label"]')).toHaveValue('snap-all-photos');
+    expect(submittedForms[0].querySelector('[name="imageIds"]')).toHaveValue(JSON.stringify(images.map((image) => image.id)));
+    expect(submittedForms[0].querySelector('[name="filename"]').value).toMatch(/^스냅월드컵_전체사진_\d{8}_\d{6}\.zip$/);
+    expect(submittedForms[0].querySelector('[name="collectionId"]')).toHaveValue('snap');
+  });
+
   test('renders records in response order and selects latest three by default', async () => {
     render(<App />);
 
@@ -245,6 +286,42 @@ describe('App', () => {
     expect(screen.queryByText('d.jpg')).not.toBeInTheDocument();
     expect(screen.queryByText('missing.jpg')).not.toBeInTheDocument();
     expect(screen.getByText('최고 별점만')).toBeInTheDocument();
+  });
+
+  test('downloads selected record comparison image groups', async () => {
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await screen.findByRole('heading', { name: '모두 겹친 이미지' });
+
+    await userEvent.click(screen.getByRole('button', { name: '선택된 모든 이미지 다운로드' }));
+
+    expect(submittedForms).toHaveLength(1);
+    expect(submittedForms[0].querySelector('[name="label"]')).toHaveValue('snap-selected-records');
+    expect(submittedForms[0].querySelector('[name="imageIds"]')).toHaveValue(JSON.stringify(['a.jpg', 'c.jpg', 'b.jpg', 'd.jpg', 'missing.jpg']));
+    expect(submittedForms[0].querySelector('[name="filename"]').value).toMatch(/^스냅월드컵_선택기록_전체_\d{8}_\d{6}\.zip$/);
+    expect(submittedForms[0].querySelector('[name="collectionId"]')).toHaveValue('snap');
+
+    const partialSection = screen.getByRole('heading', { name: '일부만 겹친 이미지' }).closest('section');
+    await userEvent.click(within(partialSection).getByRole('button', { name: '일부만 겹친 이미지 다운로드' }));
+
+    expect(submittedForms).toHaveLength(2);
+    expect(submittedForms[1].querySelector('[name="label"]')).toHaveValue('snap-partial-overlap');
+    expect(submittedForms[1].querySelector('[name="imageIds"]')).toHaveValue(JSON.stringify(['b.jpg']));
+    expect(submittedForms[1].querySelector('[name="filename"]').value).toMatch(/^스냅월드컵_일부만_겹친_이미지_\d{8}_\d{6}\.zip$/);
+  });
+
+  test('hides record download buttons for empty filtered groups', async () => {
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await screen.findByRole('heading', { name: '모두 겹친 이미지' });
+    await userEvent.selectOptions(screen.getByLabelText('별점 필터'), '최고 별점만');
+
+    const partialSection = screen.getByRole('heading', { name: '일부만 겹친 이미지' }).closest('section');
+
+    expect(within(partialSection).queryByRole('button', { name: '일부만 겹친 이미지 다운로드' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '선택된 모든 이미지 다운로드' })).toBeInTheDocument();
   });
 
   test('closes record image preview when clicking outside the photo', async () => {
@@ -441,7 +518,7 @@ describe('App', () => {
     expect(submittedForms[0]).toHaveAttribute('action', '/api/downloads/group');
     expect(submittedForms[0].querySelector('[name="label"]')).toHaveValue('round-1-selected');
     expect(submittedForms[0].querySelector('[name="imageIds"]')).toHaveValue(JSON.stringify(['a.jpg', 'j.jpg']));
-    expect(submittedForms[0].querySelector('[name="filename"]').value).toMatch(/^하늘_라운드_1_\d{8}-\d{6}\.zip$/);
+    expect(submittedForms[0].querySelector('[name="filename"]').value).toMatch(/^하늘_라운드_1_선택이미지_\d{8}_\d{6}\.zip$/);
     expect(submittedForms[0].querySelector('[name="downloadKind"]')).toHaveValue('round-selection');
     expect(submittedForms[0].querySelector('[name="playRecordId"]')).toHaveValue('play-record-1');
     expect(submittedForms[0].querySelector('[name="collectionId"]')).toHaveValue('snap');
@@ -538,7 +615,7 @@ describe('App', () => {
 
     expect(submittedForms[0].querySelector('[name="imageIds"]')).toHaveValue(JSON.stringify(['a.jpg', 'b.jpg', 'c.jpg', 'j.jpg']));
     expect(submittedForms[0].querySelector('[name="label"]')).toHaveValue('round-1-2-selected');
-    expect(submittedForms[0].querySelector('[name="filename"]').value).toMatch(/^하늘_라운드_1-2_\d{8}-\d{6}\.zip$/);
+    expect(submittedForms[0].querySelector('[name="filename"]').value).toMatch(/^하늘_라운드_1_2_선택이미지_\d{8}_\d{6}\.zip$/);
     expect(submittedForms[0].querySelector('[name="round"]')).toHaveValue('1-2');
     expect(submittedForms[0].querySelector('[name="playRecordId"]')).toHaveValue('play-record-1');
     expect(submittedForms[0].querySelector('[name="roundSelections"]')).toHaveValue(
