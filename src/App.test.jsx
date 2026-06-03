@@ -229,6 +229,25 @@ describe('App', () => {
     expect(screen.getByText('최고 별점만')).toBeInTheDocument();
   });
 
+  test('closes record image preview when clicking outside the photo', async () => {
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await screen.findByRole('heading', { name: '모두 겹친 이미지' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'a.jpg 확대 보기' }));
+
+    expect(screen.getByRole('dialog', { name: 'a.jpg' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('img', { name: 'a.jpg 원본' }));
+
+    expect(screen.getByRole('dialog', { name: 'a.jpg' })).toBeInTheDocument();
+
+    await userEvent.click(document.querySelector('.image-modal-panel'));
+
+    expect(screen.queryByRole('dialog', { name: 'a.jpg' })).not.toBeInTheDocument();
+  });
+
   test('allows selecting and unselecting an image', async () => {
     render(<App />);
 
@@ -469,6 +488,14 @@ describe('App', () => {
 
     expect(screen.getByRole('dialog', { name: 'a.jpg' })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'a.jpg 원본' })).toHaveAttribute('src', '/api/collections/snap/images/a.jpg/original');
+
+    await userEvent.click(screen.getByRole('img', { name: 'a.jpg 원본' }));
+
+    expect(screen.getByRole('dialog', { name: 'a.jpg' })).toBeInTheDocument();
+
+    await userEvent.click(document.querySelector('.image-modal-panel'));
+
+    expect(screen.queryByRole('dialog', { name: 'a.jpg' })).not.toBeInTheDocument();
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(

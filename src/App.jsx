@@ -1051,11 +1051,11 @@ function ImageModal({ image, onClose }) {
 
   return (
     <div className="image-modal" role="dialog" aria-modal="true" aria-label={image.filename} onClick={onClose}>
-      <div className="image-modal-panel" onClick={(event) => event.stopPropagation()}>
+      <div className="image-modal-panel">
         <button type="button" className="modal-close-button" onClick={onClose}>
           닫기
         </button>
-        <img src={image.originalUrl} alt={`${image.filename} 원본`} />
+        <img src={image.originalUrl} alt={`${image.filename} 원본`} onClick={(event) => event.stopPropagation()} />
       </div>
     </div>
   );
