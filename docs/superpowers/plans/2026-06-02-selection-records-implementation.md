@@ -66,7 +66,7 @@ Add these tests inside `describe('server app', () => { ... })` in `server/app.te
           {
             id: 'other-collection',
             collectionId: 'other',
-            collectionName: '다른 월드컵',
+            collectionName: '다른 토너먼트',
             nickname: '바다',
             results: { 5: ['z.jpg'] },
             createdAt: '2026-06-03T09:00:00+09:00',
@@ -229,7 +229,7 @@ Add this route after `app.get('/api/collections/:collectionId/images', ...)` and
       const collectionDir = await getCollectionImageDir(collectionsDir, req.params.collectionId);
 
       if (!collectionDir) {
-        res.status(404).json({ message: '월드컵을 찾을 수 없습니다.' });
+        res.status(404).json({ message: '토너먼트를 찾을 수 없습니다.' });
         return;
       }
 
@@ -513,9 +513,9 @@ Add this test near the existing start-screen tests:
   test('opens selection records from a collection card action', async () => {
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: '스냅 월드컵' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '스냅 토너먼트' })).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await userEvent.click(screen.getByRole('button', { name: '스냅 토너먼트 선택 기록 보기' }));
 
     expect(await screen.findByRole('heading', { name: '선택 기록' })).toBeInTheDocument();
     expect(screen.getByText('사람별 플레이 기록을 선택해 겹치는 이미지와 각자만 고른 이미지를 비교합니다.')).toBeInTheDocument();
@@ -578,7 +578,7 @@ Change the function signature:
     const trimmedName = nickname.trim();
 
     if (!collectionOverride) {
-      setError('월드컵을 선택해주세요.');
+      setError('토너먼트를 선택해주세요.');
       return;
     }
 ```
@@ -626,7 +626,7 @@ Before `if (gameState?.finished)`, add:
       <main className="records-page">
         <section className="records-header">
           <div>
-            <p className="eyebrow">{recordsCollection?.title ?? '이미지 월드컵'}</p>
+            <p className="eyebrow">{recordsCollection?.title ?? '이미지 토너먼트'}</p>
             <h1>선택 기록</h1>
             <p>사람별 플레이 기록을 선택해 겹치는 이미지와 각자만 고른 이미지를 비교합니다.</p>
           </div>
@@ -775,7 +775,7 @@ pnpm test src/App.test.jsx
 
 Expected: PASS.
 
-This task intentionally uses a collection-specific aria label such as `스냅 월드컵 시작` for collection-card start buttons so existing tests and users can still distinguish the global form submit button named `시작`.
+This task intentionally uses a collection-specific aria label such as `스냅 토너먼트 시작` for collection-card start buttons so existing tests and users can still distinguish the global form submit button named `시작`.
 
 - [ ] **Step 8: Commit entry skeleton**
 
@@ -835,7 +835,7 @@ Add:
   test('renders records newest first and selects latest three by default', async () => {
     render(<App />);
 
-    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 토너먼트 선택 기록 보기' }));
 
     const recordCheckboxes = await screen.findAllByRole('checkbox');
 
@@ -968,7 +968,7 @@ Replace the skeleton return body with:
       <main className="records-page">
         <section className="records-header">
           <div>
-            <p className="eyebrow">{recordsCollection?.title ?? '이미지 월드컵'}</p>
+            <p className="eyebrow">{recordsCollection?.title ?? '이미지 토너먼트'}</p>
             <h1>선택 기록</h1>
             <p>사람별 플레이 기록을 선택해 겹치는 이미지와 각자만 고른 이미지를 비교합니다.</p>
           </div>
@@ -1149,7 +1149,7 @@ Add:
   test('compares selected records and recomputes when star filter changes', async () => {
     render(<App />);
 
-    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 토너먼트 선택 기록 보기' }));
 
     expect(await screen.findByRole('heading', { name: '모두 겹친 이미지' })).toBeInTheDocument();
     expect(screen.getByText('a.jpg')).toBeInTheDocument();

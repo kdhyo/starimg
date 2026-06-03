@@ -105,7 +105,7 @@ export function createApp({
       const collectionDir = await getCollectionImageDir(collectionsDir, req.params.collectionId);
 
       if (!collectionDir) {
-        res.status(404).json({ message: '월드컵을 찾을 수 없습니다.' });
+        res.status(404).json({ message: '토너먼트를 찾을 수 없습니다.' });
         return;
       }
 
@@ -121,7 +121,7 @@ export function createApp({
       const collectionDir = await getCollectionImageDir(collectionsDir, req.params.collectionId);
 
       if (!collectionDir) {
-        res.status(404).json({ message: '월드컵을 찾을 수 없습니다.' });
+        res.status(404).json({ message: '토너먼트를 찾을 수 없습니다.' });
         return;
       }
 
@@ -137,7 +137,7 @@ export function createApp({
       const collectionDir = await getCollectionImageDir(collectionsDir, req.params.collectionId);
 
       if (!collectionDir) {
-        res.status(404).json({ message: '월드컵을 찾을 수 없습니다.' });
+        res.status(404).json({ message: '토너먼트를 찾을 수 없습니다.' });
         return;
       }
 
@@ -152,7 +152,7 @@ export function createApp({
       const collectionDir = await getCollectionImageDir(collectionsDir, req.params.collectionId);
 
       if (!collectionDir) {
-        res.status(404).json({ message: '월드컵을 찾을 수 없습니다.' });
+        res.status(404).json({ message: '토너먼트를 찾을 수 없습니다.' });
         return;
       }
 
@@ -191,7 +191,7 @@ export function createApp({
       }
 
       if (!downloadImageDir) {
-        res.status(404).json({ message: '월드컵을 찾을 수 없습니다.' });
+        res.status(404).json({ message: '토너먼트를 찾을 수 없습니다.' });
         return;
       }
 

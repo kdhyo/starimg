@@ -22,7 +22,7 @@ export async function listCollections(collectionsDir) {
     collections.push({
       id: encodeCollectionId(entry.name),
       name: entry.name.normalize('NFC'),
-      title: `${entry.name.normalize('NFC')} 월드컵`,
+      title: `${entry.name.normalize('NFC')} 토너먼트`,
       imageCount: images.length,
       coverPreviewUrl: images[0].previewUrl,
     });

@@ -112,7 +112,7 @@ function getDownloadName(value, fallback = '이미지') {
 }
 
 function getCollectionDownloadFilename(collection, suffix) {
-  const collectionName = getDownloadName(collection?.title ?? collection?.name, '이미지 월드컵');
+  const collectionName = getDownloadName(collection?.title ?? collection?.name, '이미지 토너먼트');
   const downloadScope = getDownloadName(suffix);
 
   return `${collectionName}_${downloadScope}_${formatDownloadTimestamp()}.zip`;
@@ -171,7 +171,7 @@ export default function App() {
     fetch('/api/collections')
       .then((response) => {
         if (!response.ok) {
-          throw new Error('월드컵 목록을 불러오지 못했습니다.');
+          throw new Error('토너먼트 목록을 불러오지 못했습니다.');
         }
 
         return response.json();
@@ -346,7 +346,7 @@ export default function App() {
     const trimmedName = nickname.trim();
 
     if (!collectionOverride) {
-      setError('월드컵을 선택해주세요.');
+      setError('토너먼트를 선택해주세요.');
       return;
     }
 
@@ -779,7 +779,7 @@ export default function App() {
     const photosCollection = collections.find((collection) => collection.id === photosViewCollectionId);
     const imageById = new Map(allPhotoImages.map((image) => [image.id, image]));
     const imageIds = allPhotoImages.map((image) => image.id);
-    const collectionTitle = photosCollection?.title ?? '이미지 월드컵';
+    const collectionTitle = photosCollection?.title ?? '이미지 토너먼트';
 
     return (
       <main className="records-page all-photos-page">
@@ -830,7 +830,7 @@ export default function App() {
       <main className="records-page">
         <section className="records-header">
           <div>
-            <p className="eyebrow">{recordsCollection?.title ?? '이미지 월드컵'}</p>
+            <p className="eyebrow">{recordsCollection?.title ?? '이미지 토너먼트'}</p>
             <h1>선택 기록</h1>
             <p>사람별 플레이 기록을 선택해 겹치는 이미지와 각자만 고른 이미지를 비교합니다.</p>
           </div>
@@ -976,7 +976,7 @@ export default function App() {
         <section className="result-header">
           <div>
             <p className="eyebrow">결과</p>
-            <h1>{selectedCollection?.title ?? '웨딩사진 월드컵'} 결과</h1>
+            <h1>{selectedCollection?.title ?? '웨딩사진 토너먼트'} 결과</h1>
             <p>{nickname.trim()}의 결과</p>
             <p>{playRecordId ? `저장됨: ${playRecordId}` : '결과 저장 중'}</p>
           </div>
@@ -1066,9 +1066,9 @@ export default function App() {
           </div>
         </section>
         {showExitConfirm && (
-          <div className="confirm-modal" role="dialog" aria-modal="true" aria-label="월드컵 종료 확인">
+          <div className="confirm-modal" role="dialog" aria-modal="true" aria-label="토너먼트 종료 확인">
             <section className="confirm-panel">
-              <h2>월드컵을 종료할까요?</h2>
+              <h2>토너먼트를 종료할까요?</h2>
               <p>지금까지의 진행 상태는 저장되지 않고 메인 페이지로 돌아갑니다.</p>
               <div className="confirm-actions">
                 <button type="button" className="secondary-button" onClick={() => setShowExitConfirm(false)}>
@@ -1161,9 +1161,9 @@ export default function App() {
   return (
     <main className="start-screen">
       <form className="start-panel" onSubmit={startGame}>
-        <p className="eyebrow">이미지 월드컵</p>
-        <h1>{selectedCollection?.title ?? '웨딩사진 월드컵'}</h1>
-        <section className="collection-picker" aria-label="월드컵 선택">
+        <p className="eyebrow">이미지 토너먼트</p>
+        <h1>{selectedCollection?.title ?? '웨딩사진 토너먼트'}</h1>
+        <section className="collection-picker" aria-label="토너먼트 선택">
           {collections.map((collection) => (
             <article
               className={`collection-card ${selectedCollection?.id === collection.id ? 'selected' : ''}`}

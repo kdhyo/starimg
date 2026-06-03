@@ -76,7 +76,7 @@ describe('server app', () => {
     const collections = await request(app).get('/api/collections').expect(200);
     const collection = collections.body.collections[0];
 
-    expect(collection.title).toBe('스냅 월드컵');
+    expect(collection.title).toBe('스냅 토너먼트');
     expect(collection.imageCount).toBe(2);
 
     const images = await request(app).get(`/api/collections/${collection.id}/images`).expect(200);
@@ -127,7 +127,7 @@ describe('server app', () => {
           {
             id: 'other-collection',
             collectionId: 'other',
-            collectionName: '다른 월드컵',
+            collectionName: '다른 토너먼트',
             nickname: '바다',
             results: { 5: ['z.jpg'] },
             createdAt: '2026-06-03T09:00:00+09:00',
@@ -441,7 +441,7 @@ describe('server app', () => {
 
   test('sends readable utf-8 zip filenames for browser downloads', async () => {
     const app = createApp({ imageDir, dataDir });
-    const filename = '스냅월드컵_전체사진_20260603_235235.zip';
+    const filename = '스냅토너먼트_전체사진_20260603_235235.zip';
 
     const response = await request(app)
       .post('/api/downloads/group')

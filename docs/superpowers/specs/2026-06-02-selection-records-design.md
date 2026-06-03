@@ -2,7 +2,7 @@
 
 ## Goal
 
-Add a way to view saved image-worldcup selections by collection and compare multiple play records. Users should understand that this page shows past selection records, not a new game result or aggregate scoreboard.
+Add a way to view saved image-tournament selections by collection and compare multiple play records. Users should understand that this page shows past selection records, not a new game result or aggregate scoreboard.
 
 ## Entry Point
 
@@ -161,7 +161,7 @@ Records page:
 - If the collection does not exist, show a collection-not-found message with a return-to-main action.
 - If records fail to load, show an error message and keep a return-to-main action visible.
 - If an image ID in a saved record no longer exists in the collection directory, show a placeholder card with the filename so the record remains understandable.
-- If there are no final result records, show an empty state explaining that records appear after someone completes the worldcup.
+- If there are no final result records, show an empty state explaining that records appear after someone completes the tournament.
 
 ## Testing
 

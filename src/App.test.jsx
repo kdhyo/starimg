@@ -23,8 +23,8 @@ const desktopImages = [
 ];
 
 const collections = [
-  { id: 'snap', name: '스냅', title: '스냅 월드컵', imageCount: 10, coverPreviewUrl: images[0].previewUrl },
-  { id: 'hair', name: '헤어변형쌤', title: '헤어변형쌤 월드컵', imageCount: 4, coverPreviewUrl: images[1].previewUrl },
+  { id: 'snap', name: '스냅', title: '스냅 토너먼트', imageCount: 10, coverPreviewUrl: images[0].previewUrl },
+  { id: 'hair', name: '헤어변형쌤', title: '헤어변형쌤 토너먼트', imageCount: 4, coverPreviewUrl: images[1].previewUrl },
 ];
 
 const collectionResults = [
@@ -183,7 +183,7 @@ describe('App', () => {
   test('does not start without a nickname', async () => {
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: '스냅 월드컵' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '스냅 토너먼트' })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: '시작' }));
 
@@ -193,10 +193,10 @@ describe('App', () => {
   test('opens selection records from a collection card action', async () => {
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: '스냅 월드컵' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '스냅 월드컵 시작' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '스냅 토너먼트' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '스냅 토너먼트 시작' })).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await userEvent.click(screen.getByRole('button', { name: '스냅 토너먼트 선택 기록 보기' }));
 
     expect(await screen.findByRole('heading', { name: '선택 기록' })).toBeInTheDocument();
     expect(screen.getByText('사람별 플레이 기록을 선택해 겹치는 이미지와 각자만 고른 이미지를 비교합니다.')).toBeInTheDocument();
@@ -205,12 +205,12 @@ describe('App', () => {
   test('opens all collection photos without record search or filters', async () => {
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: '스냅 월드컵' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '스냅 토너먼트' })).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: '스냅 월드컵 전체 사진 보기' }));
+    await userEvent.click(screen.getByRole('button', { name: '스냅 토너먼트 전체 사진 보기' }));
 
     expect(await screen.findByRole('heading', { name: '전체 사진' })).toBeInTheDocument();
-    expect(screen.getByText('스냅 월드컵의 전체 사진 10장을 한 번에 봅니다.')).toBeInTheDocument();
+    expect(screen.getByText('스냅 토너먼트의 전체 사진 10장을 한 번에 봅니다.')).toBeInTheDocument();
     expect(screen.queryByLabelText('이름 검색')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('별점 필터')).not.toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /확대 보기/ })).toHaveLength(10);
@@ -229,7 +229,7 @@ describe('App', () => {
   test('downloads every photo from the all photos view', async () => {
     render(<App />);
 
-    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 전체 사진 보기' }));
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 토너먼트 전체 사진 보기' }));
     await screen.findByRole('heading', { name: '전체 사진' });
 
     await userEvent.click(screen.getByRole('button', { name: '전체사진 다운로드' }));
@@ -239,14 +239,14 @@ describe('App', () => {
     expect(submittedForms[0]).toHaveAttribute('action', '/api/downloads/group');
     expect(submittedForms[0].querySelector('[name="label"]')).toHaveValue('snap-all-photos');
     expect(submittedForms[0].querySelector('[name="imageIds"]')).toHaveValue(JSON.stringify(images.map((image) => image.id)));
-    expect(submittedForms[0].querySelector('[name="filename"]').value).toMatch(/^스냅월드컵_전체사진_\d{8}_\d{6}\.zip$/);
+    expect(submittedForms[0].querySelector('[name="filename"]').value).toMatch(/^스냅토너먼트_전체사진_\d{8}_\d{6}\.zip$/);
     expect(submittedForms[0].querySelector('[name="collectionId"]')).toHaveValue('snap');
   });
 
   test('renders records in response order and selects latest three by default', async () => {
     render(<App />);
 
-    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 토너먼트 선택 기록 보기' }));
 
     const recordCheckboxes = await screen.findAllByRole('checkbox');
 
@@ -265,7 +265,7 @@ describe('App', () => {
   test('compares selected records and recomputes when star filter changes', async () => {
     render(<App />);
 
-    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 토너먼트 선택 기록 보기' }));
 
     expect(await screen.findByRole('heading', { name: '모두 겹친 이미지' })).toBeInTheDocument();
     expect(screen.getByText('a.jpg')).toBeInTheDocument();
@@ -291,7 +291,7 @@ describe('App', () => {
   test('downloads selected record comparison image groups', async () => {
     render(<App />);
 
-    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 토너먼트 선택 기록 보기' }));
     await screen.findByRole('heading', { name: '모두 겹친 이미지' });
 
     await userEvent.click(screen.getByRole('button', { name: '선택된 모든 이미지 다운로드' }));
@@ -299,7 +299,7 @@ describe('App', () => {
     expect(submittedForms).toHaveLength(1);
     expect(submittedForms[0].querySelector('[name="label"]')).toHaveValue('snap-selected-records');
     expect(submittedForms[0].querySelector('[name="imageIds"]')).toHaveValue(JSON.stringify(['a.jpg', 'c.jpg', 'b.jpg', 'd.jpg', 'missing.jpg']));
-    expect(submittedForms[0].querySelector('[name="filename"]').value).toMatch(/^스냅월드컵_선택기록_전체_\d{8}_\d{6}\.zip$/);
+    expect(submittedForms[0].querySelector('[name="filename"]').value).toMatch(/^스냅토너먼트_선택기록_전체_\d{8}_\d{6}\.zip$/);
     expect(submittedForms[0].querySelector('[name="collectionId"]')).toHaveValue('snap');
 
     const partialSection = screen.getByRole('heading', { name: '일부만 겹친 이미지' }).closest('section');
@@ -308,13 +308,13 @@ describe('App', () => {
     expect(submittedForms).toHaveLength(2);
     expect(submittedForms[1].querySelector('[name="label"]')).toHaveValue('snap-partial-overlap');
     expect(submittedForms[1].querySelector('[name="imageIds"]')).toHaveValue(JSON.stringify(['b.jpg']));
-    expect(submittedForms[1].querySelector('[name="filename"]').value).toMatch(/^스냅월드컵_일부만_겹친_이미지_\d{8}_\d{6}\.zip$/);
+    expect(submittedForms[1].querySelector('[name="filename"]').value).toMatch(/^스냅토너먼트_일부만_겹친_이미지_\d{8}_\d{6}\.zip$/);
   });
 
   test('hides record download buttons for empty filtered groups', async () => {
     render(<App />);
 
-    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 토너먼트 선택 기록 보기' }));
     await screen.findByRole('heading', { name: '모두 겹친 이미지' });
     await userEvent.selectOptions(screen.getByLabelText('별점 필터'), '최고 별점만');
 
@@ -327,7 +327,7 @@ describe('App', () => {
   test('closes record image preview when clicking outside the photo', async () => {
     render(<App />);
 
-    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 토너먼트 선택 기록 보기' }));
     await screen.findByRole('heading', { name: '모두 겹친 이미지' });
 
     await userEvent.click(screen.getByRole('button', { name: 'a.jpg 확대 보기' }));
@@ -346,7 +346,7 @@ describe('App', () => {
   test('navigates record image previews with previous and next buttons', async () => {
     render(<App />);
 
-    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 토너먼트 선택 기록 보기' }));
     await screen.findByRole('heading', { name: '선택 기록' });
     await userEvent.click(screen.getByRole('checkbox', { name: /민지/ }));
     await userEvent.click(screen.getByRole('checkbox', { name: /사용자A/ }));
@@ -370,7 +370,7 @@ describe('App', () => {
   test('navigates record image previews with horizontal swipe gestures', async () => {
     render(<App />);
 
-    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 토너먼트 선택 기록 보기' }));
     await screen.findByRole('heading', { name: '선택 기록' });
     await userEvent.click(screen.getByRole('checkbox', { name: /민지/ }));
     await userEvent.click(screen.getByRole('checkbox', { name: /사용자A/ }));
@@ -394,7 +394,7 @@ describe('App', () => {
   test('moves the preview while swiping and accepts a shorter swipe', async () => {
     render(<App />);
 
-    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 토너먼트 선택 기록 보기' }));
     await screen.findByRole('heading', { name: '선택 기록' });
     await userEvent.click(screen.getByRole('checkbox', { name: /민지/ }));
     await userEvent.click(screen.getByRole('checkbox', { name: /사용자A/ }));
@@ -416,7 +416,7 @@ describe('App', () => {
   test('shows a mobile gallery header and thumbnail strip for image previews', async () => {
     render(<App />);
 
-    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 토너먼트 선택 기록 보기' }));
     await screen.findByRole('heading', { name: '선택 기록' });
     await userEvent.click(screen.getByRole('checkbox', { name: /민지/ }));
     await userEvent.click(screen.getByRole('checkbox', { name: /사용자A/ }));
@@ -492,7 +492,7 @@ describe('App', () => {
     await userEvent.click(screen.getByRole('button', { name: '다음' }));
     await userEvent.click(screen.getByRole('button', { name: '다음' }));
 
-    expect(await screen.findByRole('heading', { name: '스냅 월드컵 결과' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '스냅 토너먼트 결과' })).toBeInTheDocument();
     expect(screen.getByText('하늘의 결과')).toBeInTheDocument();
     expect(screen.queryByText('하나 이상 선택해주세요.')).not.toBeInTheDocument();
   });
@@ -559,7 +559,7 @@ describe('App', () => {
     await userEvent.click(screen.getByRole('button', { name: '선택 마무리' }));
     await userEvent.click(screen.getByRole('button', { name: '결과 저장' }));
 
-    expect(await screen.findByRole('heading', { name: '스냅 월드컵 결과' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '스냅 토너먼트 결과' })).toBeInTheDocument();
     expect(screen.getByText('별 1개')).toBeInTheDocument();
 
     await waitFor(() => {
@@ -651,17 +651,17 @@ describe('App', () => {
 
     await userEvent.click(screen.getByRole('button', { name: '종료' }));
 
-    expect(screen.getByRole('dialog', { name: '월드컵 종료 확인' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: '토너먼트 종료 확인' })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: '아니오' }));
 
-    expect(screen.queryByRole('dialog', { name: '월드컵 종료 확인' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: '토너먼트 종료 확인' })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Round 2 시작' })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: '종료' }));
     await userEvent.click(screen.getByRole('button', { name: '예' }));
 
-    expect(await screen.findByRole('heading', { name: '스냅 월드컵' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '스냅 토너먼트' })).toBeInTheDocument();
   });
 
   test('shows results grouped by stars and stores them once', async () => {
@@ -673,7 +673,7 @@ describe('App', () => {
     await userEvent.click(screen.getByRole('button', { name: '다음' }));
     await userEvent.click(screen.getByRole('button', { name: '다음' }));
 
-    expect(await screen.findByRole('heading', { name: '스냅 월드컵 결과' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '스냅 토너먼트 결과' })).toBeInTheDocument();
     expect(screen.getByText('하늘의 결과')).toBeInTheDocument();
     expect(screen.getByText('별 1개')).toBeInTheDocument();
     expect(screen.queryByText('원본')).not.toBeInTheDocument();
@@ -715,7 +715,7 @@ describe('App', () => {
     await userEvent.click(await screen.findByRole('button', { name: '선택 마무리' }));
     await userEvent.click(screen.getByRole('button', { name: '결과 저장' }));
 
-    expect(await screen.findByRole('heading', { name: '스냅 월드컵 결과' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '스냅 토너먼트 결과' })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'a.jpg 확대 보기' }));
 
