@@ -436,7 +436,7 @@ export default function App() {
       return;
     }
 
-    const selectedImages = mergeUniqueImages(roundIntro.selectedImages, completedBonusSelection);
+    const selectedImages = mergeUniqueImages(roundIntro.selectedImages, completedBonusSelection, roundIntro.baseCandidates);
     const additionalIds = new Set(completedBonusSelection.map((image) => image.id));
     const scores = { ...gameState.scores };
 

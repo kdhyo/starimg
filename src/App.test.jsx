@@ -425,7 +425,7 @@ describe('App', () => {
 
     await userEvent.click(screen.getByRole('button', { name: '이번 선택 다운로드' }));
 
-    expect(submittedForms[0].querySelector('[name="imageIds"]')).toHaveValue(JSON.stringify(['a.jpg', 'j.jpg', 'b.jpg', 'c.jpg']));
+    expect(submittedForms[0].querySelector('[name="imageIds"]')).toHaveValue(JSON.stringify(['a.jpg', 'b.jpg', 'c.jpg', 'j.jpg']));
     expect(submittedForms[0].querySelector('[name="label"]')).toHaveValue('round-1-2-selected');
     expect(submittedForms[0].querySelector('[name="filename"]').value).toMatch(/^하늘_라운드_1-2_\d{8}-\d{6}\.zip$/);
     expect(submittedForms[0].querySelector('[name="round"]')).toHaveValue('1-2');
@@ -441,6 +441,12 @@ describe('App', () => {
     await userEvent.click(screen.getByRole('button', { name: '다음 라운드 진행' }));
 
     expect(screen.getByText('1-4 / 4')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /\.jpg/ }).map((button) => button.getAttribute('aria-label'))).toEqual([
+      'a.jpg',
+      'b.jpg',
+      'c.jpg',
+      'j.jpg',
+    ]);
   });
 
   test('confirms before exiting from the next round screen', async () => {

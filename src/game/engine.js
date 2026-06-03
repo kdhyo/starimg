@@ -106,7 +106,7 @@ export function excludeSelectedImages(candidates, selectedImages) {
   return candidates.filter((image) => !selectedIds.has(image.id));
 }
 
-export function mergeUniqueImages(existingImages, additionalImages) {
+export function mergeUniqueImages(existingImages, additionalImages, orderedCandidates = null) {
   const merged = [];
   const seenIds = new Set();
 
@@ -117,6 +117,12 @@ export function mergeUniqueImages(existingImages, additionalImages) {
 
     seenIds.add(image.id);
     merged.push(image);
+  }
+
+  if (orderedCandidates) {
+    const order = new Map(orderedCandidates.map((image, index) => [image.id, index]));
+
+    return [...merged].sort((a, b) => (order.get(a.id) ?? Infinity) - (order.get(b.id) ?? Infinity));
   }
 
   return merged;

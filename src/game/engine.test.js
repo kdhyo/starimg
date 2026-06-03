@@ -127,4 +127,10 @@ describe('game engine', () => {
 
     expect(merged.map((image) => image.id)).toEqual(['a', 'c', 'e']);
   });
+
+  test('can merge additional selections using original candidate order', () => {
+    const merged = mergeUniqueImages([images[0], images[9]], [images[1], images[2]], images);
+
+    expect(merged.map((image) => image.id)).toEqual(['a', 'b', 'c', 'j']);
+  });
 });
