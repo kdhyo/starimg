@@ -11,6 +11,9 @@ import {
 } from './game/engine.js';
 import { compareSelectedRecords, getFilteredRecordImageIds, starFilterOptions } from './game/records.js';
 
+const swipeThreshold = 32;
+const swipeVerticalTolerance = 80;
+
 function getRecordsRouteCollectionId() {
   const match = window.location.pathname.match(/^\/collections\/([^/]+)\/records$/);
   return match ? decodeURIComponent(match[1]) : null;
@@ -1062,6 +1065,10 @@ function RecordImageSection({ title, imageIds, imageById, onExpand }) {
 }
 
 function ImageModal({ image, images = [], onChange, onClose }) {
+  const touchStartRef = useRef(null);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+
   if (!image) {
     return null;
   }
@@ -1075,12 +1082,94 @@ function ImageModal({ image, images = [], onChange, onClose }) {
     onChange(modalImages[nextIndex]);
   }
 
+  function handleTouchStart(event) {
+    if (!hasNavigation || event.touches.length === 0) {
+      return;
+    }
+
+    const touch = event.touches[0];
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+    };
+    setIsDragging(true);
+    setDragOffset(0);
+  }
+
+  function handleTouchMove(event) {
+    if (!hasNavigation || !touchStartRef.current || event.touches.length === 0) {
+      return;
+    }
+
+    const touch = event.touches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+
+    if (Math.abs(deltaY) > swipeVerticalTolerance) {
+      setDragOffset(0);
+      return;
+    }
+
+    setDragOffset(Math.max(-220, Math.min(220, deltaX)));
+  }
+
+  function handleTouchEnd(event) {
+    if (!hasNavigation || !touchStartRef.current || event.changedTouches.length === 0) {
+      return;
+    }
+
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    touchStartRef.current = null;
+    setIsDragging(false);
+    setDragOffset(0);
+
+    if (Math.abs(deltaX) < swipeThreshold || Math.abs(deltaY) > swipeVerticalTolerance) {
+      return;
+    }
+
+    movePreview(deltaX < 0 ? 1 : -1);
+  }
+
   return (
     <div className="image-modal" role="dialog" aria-modal="true" aria-label={image.filename} onClick={onClose}>
-      <div className="image-modal-panel">
+      <div
+        className="image-modal-panel"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         <button type="button" className="modal-close-button" onClick={onClose}>
           닫기
         </button>
+        <div className="modal-mobile-header">
+          <button
+            type="button"
+            className="modal-mobile-icon-button"
+            aria-label="확대 보기 닫기"
+            onClick={(event) => {
+              event.stopPropagation();
+              onClose();
+            }}
+          >
+            ‹
+          </button>
+          <div className="modal-mobile-title" aria-label="확대 이미지 정보">
+            <strong>{image.filename}</strong>
+            <span>
+              {modalImages.length}장 중 {currentIndex + 1}번째
+            </span>
+          </div>
+          <button
+            type="button"
+            className="modal-mobile-icon-button"
+            aria-label="확대 보기 옵션"
+            onClick={(event) => event.stopPropagation()}
+          >
+            ···
+          </button>
+        </div>
         {hasNavigation && (
           <>
             <button
@@ -1110,7 +1199,49 @@ function ImageModal({ image, images = [], onChange, onClose }) {
             </span>
           </>
         )}
-        <img src={image.originalUrl} alt={`${image.filename} 원본`} onClick={(event) => event.stopPropagation()} />
+        <div className="modal-image-viewport">
+          <div
+            className={`modal-image-track ${isDragging ? 'is-dragging' : ''}`}
+            style={{
+              transform: `translateX(calc(-${currentIndex * 100}% + ${dragOffset}px))`,
+            }}
+          >
+            {modalImages.map((modalImage) => {
+              const isCurrentImage = modalImage.id === image.id;
+
+              return (
+                <div className="modal-image-slide" aria-hidden={isCurrentImage ? undefined : 'true'} key={modalImage.id}>
+                  <img
+                    src={modalImage.originalUrl}
+                    alt={isCurrentImage ? `${modalImage.filename} 원본` : ''}
+                    onClick={(event) => event.stopPropagation()}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        {hasNavigation && (
+          <div className="modal-thumbnail-strip" aria-label="확대 이미지 썸네일 목록" onClick={(event) => event.stopPropagation()}>
+            {modalImages.map((thumbnailImage, index) => (
+              <button
+                type="button"
+                className="modal-thumbnail-button"
+                aria-label={`${thumbnailImage.filename} 보기`}
+                aria-current={thumbnailImage.id === image.id ? 'true' : 'false'}
+                key={thumbnailImage.id}
+                onClick={() => {
+                  setDragOffset(0);
+                  setIsDragging(false);
+                  onChange(thumbnailImage);
+                }}
+              >
+                <img src={thumbnailImage.previewUrl || thumbnailImage.originalUrl} alt="" />
+                <span>{index + 1}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

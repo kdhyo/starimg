@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import App from './App.jsx';
@@ -288,6 +288,75 @@ describe('App', () => {
     await userEvent.click(screen.getByRole('button', { name: '이전 사진' }));
 
     expect(screen.getByRole('dialog', { name: 'a.jpg' })).toBeInTheDocument();
+  });
+
+  test('navigates record image previews with horizontal swipe gestures', async () => {
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await screen.findByRole('heading', { name: '선택 기록' });
+    await userEvent.click(screen.getByRole('checkbox', { name: /민지/ }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /사용자A/ }));
+
+    await userEvent.click(screen.getByRole('button', { name: 'a.jpg 확대 보기' }));
+
+    const panel = document.querySelector('.image-modal-panel');
+    fireEvent.touchStart(panel, { touches: [{ clientX: 280, clientY: 180 }] });
+    fireEvent.touchEnd(panel, { changedTouches: [{ clientX: 110, clientY: 186 }] });
+
+    expect(screen.getByRole('dialog', { name: 'c.jpg' })).toBeInTheDocument();
+    expect(screen.getByText('2 / 3')).toBeInTheDocument();
+
+    fireEvent.touchStart(panel, { touches: [{ clientX: 110, clientY: 180 }] });
+    fireEvent.touchEnd(panel, { changedTouches: [{ clientX: 280, clientY: 184 }] });
+
+    expect(screen.getByRole('dialog', { name: 'a.jpg' })).toBeInTheDocument();
+    expect(screen.getByText('1 / 3')).toBeInTheDocument();
+  });
+
+  test('moves the preview while swiping and accepts a shorter swipe', async () => {
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await screen.findByRole('heading', { name: '선택 기록' });
+    await userEvent.click(screen.getByRole('checkbox', { name: /민지/ }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /사용자A/ }));
+
+    await userEvent.click(screen.getByRole('button', { name: 'a.jpg 확대 보기' }));
+
+    const panel = document.querySelector('.image-modal-panel');
+    const slider = document.querySelector('.modal-image-track');
+    fireEvent.touchStart(panel, { touches: [{ clientX: 220, clientY: 180 }] });
+    fireEvent.touchMove(panel, { touches: [{ clientX: 184, clientY: 182 }] });
+
+    expect(slider.getAttribute('style')).toContain('-36px');
+
+    fireEvent.touchEnd(panel, { changedTouches: [{ clientX: 184, clientY: 182 }] });
+
+    expect(screen.getByRole('dialog', { name: 'c.jpg' })).toBeInTheDocument();
+  });
+
+  test('shows a mobile gallery header and thumbnail strip for image previews', async () => {
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole('button', { name: '스냅 월드컵 선택 기록 보기' }));
+    await screen.findByRole('heading', { name: '선택 기록' });
+    await userEvent.click(screen.getByRole('checkbox', { name: /민지/ }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /사용자A/ }));
+
+    await userEvent.click(screen.getByRole('button', { name: 'a.jpg 확대 보기' }));
+
+    expect(screen.getByRole('button', { name: '확대 보기 닫기' })).toBeInTheDocument();
+    expect(within(screen.getByLabelText('확대 이미지 정보')).getByText('a.jpg')).toBeInTheDocument();
+
+    const thumbnailStrip = screen.getByLabelText('확대 이미지 썸네일 목록');
+    expect(within(thumbnailStrip).getAllByRole('button')).toHaveLength(3);
+    expect(within(thumbnailStrip).getByRole('button', { name: 'c.jpg 보기' })).toHaveAttribute('aria-current', 'false');
+
+    await userEvent.click(within(thumbnailStrip).getByRole('button', { name: 'c.jpg 보기' }));
+
+    expect(screen.getByRole('dialog', { name: 'c.jpg' })).toBeInTheDocument();
+    expect(within(thumbnailStrip).getByRole('button', { name: 'c.jpg 보기' })).toHaveAttribute('aria-current', 'true');
   });
 
   test('allows selecting and unselecting an image', async () => {
