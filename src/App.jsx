@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   createGameState,
+  desktopItemsPerBatch,
   excludeSelectedImages,
   finishBatch,
   getCurrentBatch,
   groupByStars,
+  mobileItemsPerBatch,
   mergeUniqueImages,
 } from './game/engine.js';
 import { compareSelectedRecords, getFilteredRecordImageIds, starFilterOptions } from './game/records.js';
@@ -70,6 +72,31 @@ function getDownloadRoundKey(roundIntro) {
   return roundIntro.extraSelectionCount > 0
     ? getExtraRoundKey(roundIntro.completedRound, roundIntro.extraSelectionCount)
     : getRoundKey(roundIntro.completedRound);
+}
+
+function formatDownloadTimestamp(date = new Date()) {
+  const year = String(date.getFullYear());
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hour = String(date.getHours()).padStart(2, '0');
+  const minute = String(date.getMinutes()).padStart(2, '0');
+  const second = String(date.getSeconds()).padStart(2, '0');
+
+  return `${year}${month}${day}-${hour}${minute}${second}`;
+}
+
+function getRoundSelectionFilename(nickname, roundKey) {
+  const trimmedName = nickname.trim() || 'guest';
+
+  return `${trimmedName}_라운드_${roundKey}_${formatDownloadTimestamp()}.zip`;
+}
+
+function getResponsiveItemsPerBatch() {
+  if (typeof window.matchMedia !== 'function') {
+    return mobileItemsPerBatch;
+  }
+
+  return window.matchMedia('(min-width: 900px)').matches ? desktopItemsPerBatch : mobileItemsPerBatch;
 }
 
 export default function App() {
@@ -279,7 +306,7 @@ export default function App() {
 
       setSelectedCollection(collectionOverride);
       setImages(data.images);
-      setGameState(createGameState(data.images));
+      setGameState(createGameState(data.images, getResponsiveItemsPerBatch()));
       setPlayRecordId(record.id);
       setSelectedIds(new Set());
       setRoundIntro(null);
@@ -454,7 +481,7 @@ export default function App() {
     }
 
     setBonusSelection({
-      gameState: createGameState(remainingImages),
+      gameState: createGameState(remainingImages, getResponsiveItemsPerBatch()),
       completedRound: roundIntro.completedRound,
       iteration: roundIntro.extraSelectionCount + 1,
     });
@@ -608,7 +635,7 @@ export default function App() {
     downloadZip(
       `round-${roundKey}-selected`,
       roundIntro.selectedImages.map((image) => image.id),
-      `round-${roundKey}-selected.zip`,
+      getRoundSelectionFilename(nickname, roundKey),
       {
         downloadKind: 'round-selection',
         playRecordId: playRecordId ?? '',

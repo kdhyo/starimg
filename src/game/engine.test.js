@@ -11,10 +11,20 @@ import {
 const images = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'].map((id) => ({ id, filename: `${id}.jpg` }));
 
 describe('game engine', () => {
-  test('returns the current batch using the fixed group size', () => {
+  test('returns the current batch using the default mobile group size', () => {
     const state = createGameState(images);
 
     expect(getCurrentBatch(state).map((image) => image.id)).toEqual(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']);
+  });
+
+  test('supports a larger desktop group size', () => {
+    const desktopImages = [...images, { id: 'k', filename: 'k.jpg' }, { id: 'l', filename: 'l.jpg' }, { id: 'm', filename: 'm.jpg' }];
+    const state = createGameState(desktopImages, 10);
+    const next = finishBatch(state, ['a', 'j']);
+
+    expect(getCurrentBatch(state).map((image) => image.id)).toEqual(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']);
+    expect(next.cursor).toBe(10);
+    expect(getCurrentBatch(next).map((image) => image.id)).toEqual(['k', 'l', 'm']);
   });
 
   test('eliminates unselected images and gives selected images one star', () => {

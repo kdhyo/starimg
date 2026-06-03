@@ -394,13 +394,14 @@ describe('server app', () => {
         imageIds: JSON.stringify(['a.jpg']),
         roundSelections: JSON.stringify([{ round: 1, imageIds: ['a.jpg'] }]),
         label: 'round-1-selected',
+        filename: 'custom-round-selection.zip',
       })
       .buffer(true)
       .parse(parseBinaryResponse)
       .expect(200);
 
     expect(response.headers['content-type']).toMatch(/application\/zip/);
-    expect(response.headers['content-disposition']).toContain('round-1-selected.zip');
+    expect(response.headers['content-disposition']).toContain('custom-round-selection.zip');
     expect(response.body.length).toBeGreaterThan(0);
 
     const results = JSON.parse(await fs.readFile(path.join(dataDir, 'results.json'), 'utf8'));

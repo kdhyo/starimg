@@ -598,24 +598,25 @@ input {
 .play-grid {
   height: calc(100dvh - 54px);
   min-height: 540px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(3, minmax(0, 1fr));
-  gap: 3px;
-  align-items: stretch;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(2, auto);
+  gap: 0;
+  align-content: center;
+  align-items: start;
   margin-top: 4px;
 }
 
 .play-grid.count-1 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   justify-content: center;
 }
 
 .play-grid.count-2 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .play-grid.count-3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .play-grid.count-4,
@@ -623,8 +624,9 @@ input {
 .play-grid.count-6,
 .play-grid.count-7,
 .play-grid.count-8,
-.play-grid.count-9 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.play-grid.count-9,
+.play-grid.count-10 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .image-grid.compact {
@@ -648,6 +650,10 @@ input {
   padding: 0;
   background: #f6f7f9;
   cursor: pointer;
+}
+
+.play-grid .image-choice {
+  min-height: 0;
 }
 
 .image-choice.selected {
@@ -683,8 +689,8 @@ input {
 }
 
 .play-grid .image-choice img {
-  height: 100%;
-  aspect-ratio: auto;
+  height: auto;
+  aspect-ratio: 3 / 4;
   max-height: none;
   object-fit: contain;
 }
@@ -843,6 +849,21 @@ input {
   font-weight: 900;
 }
 
+@media (max-width: 899px) {
+  .play-grid,
+  .play-grid.count-2,
+  .play-grid.count-3,
+  .play-grid.count-4,
+  .play-grid.count-5,
+  .play-grid.count-6,
+  .play-grid.count-7,
+  .play-grid.count-8,
+  .play-grid.count-9,
+  .play-grid.count-10 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 720px) {
   .records-page {
     padding: 14px;
@@ -962,7 +983,8 @@ input {
   .play-grid.count-6,
   .play-grid.count-7,
   .play-grid.count-8,
-  .play-grid.count-9 {
+  .play-grid.count-9,
+  .play-grid.count-10 {
     height: auto;
     min-height: 0;
     grid-template-columns: repeat(3, minmax(0, 1fr));

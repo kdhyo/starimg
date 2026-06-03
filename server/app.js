@@ -23,6 +23,12 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
 
+function getDownloadFilename(body, label) {
+  const filename = typeof body?.filename === 'string' ? body.filename.trim() : '';
+
+  return filename || `${label}.zip`;
+}
+
 export function createApp({
   imageDir = path.join(projectRoot, 'imgs'),
   collectionsDir = path.join(projectRoot, 'images', 'collections'),
@@ -179,8 +185,10 @@ export function createApp({
         }
       }
 
+      const filename = getDownloadFilename(req.body, label);
+
       res.type('application/zip');
-      res.attachment(`${label}.zip`);
+      res.attachment(filename);
 
       const archive = archiver('zip', { zlib: { level: 9 } });
       archive.on('error', next);

@@ -1,8 +1,10 @@
-export const itemsPerBatch = 9;
+export const mobileItemsPerBatch = 9;
+export const desktopItemsPerBatch = 10;
+export const itemsPerBatch = mobileItemsPerBatch;
 
-export function createGameState(images) {
+export function createGameState(images, batchSize = itemsPerBatch) {
   return {
-    itemsPerBatch,
+    itemsPerBatch: batchSize,
     round: 1,
     cursor: 0,
     currentCandidates: [...images],

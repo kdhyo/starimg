@@ -16,6 +16,12 @@ const images = [
   { id: 'j.jpg', filename: 'j.jpg', previewUrl: '/api/collections/snap/images/j.jpg/preview', originalUrl: '/api/collections/snap/images/j.jpg/original' },
 ];
 
+const desktopImages = [
+  ...images,
+  { id: 'k.jpg', filename: 'k.jpg', previewUrl: '/api/collections/snap/images/k.jpg/preview', originalUrl: '/api/collections/snap/images/k.jpg/original' },
+  { id: 'l.jpg', filename: 'l.jpg', previewUrl: '/api/collections/snap/images/l.jpg/preview', originalUrl: '/api/collections/snap/images/l.jpg/original' },
+];
+
 const collections = [
   { id: 'snap', name: '스냅', title: '스냅 월드컵', imageCount: 10, coverPreviewUrl: images[0].previewUrl },
   { id: 'hair', name: '헤어변형쌤', title: '헤어변형쌤 월드컵', imageCount: 4, coverPreviewUrl: images[1].previewUrl },
@@ -58,6 +64,7 @@ let submittedForms;
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  window.matchMedia = undefined;
   window.history.replaceState({}, '', '/');
   submittedForms = [];
   vi.spyOn(HTMLFormElement.prototype, 'submit').mockImplementation(function submit() {
@@ -111,7 +118,7 @@ describe('App', () => {
     expect(await screen.findByText('1-9 / 10')).toBeInTheDocument();
   });
 
-  test('starts directly with a fixed 3 by 3 image grid', async () => {
+  test('starts directly with the mobile 3 by 3 image grid', async () => {
     render(<App />);
 
     expect(screen.queryByRole('button', { name: '5' })).not.toBeInTheDocument();
@@ -124,6 +131,35 @@ describe('App', () => {
     expect(screen.queryByRole('heading', { name: '마음에 드는 이미지를 선택하세요' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '처음으로' })).not.toBeInTheDocument();
     expect(document.querySelector('.play-grid')).toHaveClass('count-9');
+  });
+
+  test('uses a 5 by 2 image grid on desktop screens', async () => {
+    window.matchMedia = vi.fn((query) => ({
+      matches: query === '(min-width: 900px)',
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    global.fetch = vi.fn(async (url, options) => {
+      if (url === '/api/collections') {
+        return Response.json({ collections });
+      }
+      if (url === '/api/collections/snap/images') {
+        return Response.json({ images: desktopImages });
+      }
+      if (url === '/api/play-records' && options?.method === 'POST') {
+        return Response.json({ id: 'play-record-1' }, { status: 201 });
+      }
+      return Response.json({}, { status: 404 });
+    });
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText('이름'), '하늘');
+    await userEvent.click(screen.getByRole('button', { name: '시작' }));
+
+    expect(await screen.findByText('1-10 / 12')).toBeInTheDocument();
+    expect(document.querySelector('.play-grid')).toHaveClass('count-10');
   });
 
   test('does not start without a nickname', async () => {
@@ -275,6 +311,7 @@ describe('App', () => {
     expect(submittedForms[0]).toHaveAttribute('action', '/api/downloads/group');
     expect(submittedForms[0].querySelector('[name="label"]')).toHaveValue('round-1-selected');
     expect(submittedForms[0].querySelector('[name="imageIds"]')).toHaveValue(JSON.stringify(['a.jpg', 'j.jpg']));
+    expect(submittedForms[0].querySelector('[name="filename"]').value).toMatch(/^하늘_라운드_1_\d{8}-\d{6}\.zip$/);
     expect(submittedForms[0].querySelector('[name="downloadKind"]')).toHaveValue('round-selection');
     expect(submittedForms[0].querySelector('[name="playRecordId"]')).toHaveValue('play-record-1');
     expect(submittedForms[0].querySelector('[name="collectionId"]')).toHaveValue('snap');
@@ -371,6 +408,7 @@ describe('App', () => {
 
     expect(submittedForms[0].querySelector('[name="imageIds"]')).toHaveValue(JSON.stringify(['a.jpg', 'j.jpg', 'b.jpg', 'c.jpg']));
     expect(submittedForms[0].querySelector('[name="label"]')).toHaveValue('round-1-2-selected');
+    expect(submittedForms[0].querySelector('[name="filename"]').value).toMatch(/^하늘_라운드_1-2_\d{8}-\d{6}\.zip$/);
     expect(submittedForms[0].querySelector('[name="round"]')).toHaveValue('1-2');
     expect(submittedForms[0].querySelector('[name="playRecordId"]')).toHaveValue('play-record-1');
     expect(submittedForms[0].querySelector('[name="roundSelections"]')).toHaveValue(
